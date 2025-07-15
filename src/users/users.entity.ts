@@ -17,6 +17,12 @@ export class User {
   @Column()
   lastName: string;
 
+  @Column({ default: false })
+  isFacebookUser: boolean;
+
+  @Column()
+  provider?: string;
+
   @Column({ default: true })
   isActive: boolean;
 
