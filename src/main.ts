@@ -7,10 +7,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const config = new DocumentBuilder()
-    .setTitle('API Documentation')
-    .setDescription('The API description')
+    .setTitle('Aunya API Docs')
+    .setDescription('ว่างก็ไปทำงาน')
     .setVersion('1.0')
-    .addTag('files')
+    // .addTag('Aunya API')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
