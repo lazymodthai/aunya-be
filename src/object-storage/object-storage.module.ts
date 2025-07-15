@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common';
 import { ObjectStorageController } from './object-storage.controller';
 import { ObjectStorageService } from './object-storage.service';
 import { S3Client } from '@aws-sdk/client-s3';
+import { UploadedFileModule } from '../uploaded-files/uploaded-file.module';
 
 @Module({
+  imports: [UploadedFileModule],
   controllers: [ObjectStorageController],
   providers: [
     ObjectStorageService,
