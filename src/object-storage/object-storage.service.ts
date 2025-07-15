@@ -45,12 +45,12 @@ export class ObjectStorageService {
     }
   }
 
-  async getFile(key: string) {
+  async getFile(key?: string) {
     const bucketName = this.bucketName;
     console.log(`Attempting to get file from S3. Bucket: ${bucketName}, Key: ${key}`);
     const command = new GetObjectCommand({
       Bucket: bucketName,
-      Key: key,
+      Key: key || "",
     });
     console.log('S3 Command:', command)
 
