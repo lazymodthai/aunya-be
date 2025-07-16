@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { ObjectStorageModule } from './object-storage/object-storage.module';
 import { UploadedFileModule } from './uploaded-files/uploaded-file.module';
 import { ConfigModule } from '@nestjs/config';
+import { BookingModule } from './booking/booking.module';
 
 @Module({
   imports: [
@@ -24,7 +25,8 @@ import { ConfigModule } from '@nestjs/config';
     UsersModule,
     AuthModule,
     ObjectStorageModule,
-    UploadedFileModule
+    UploadedFileModule,
+    BookingModule
   ],
   controllers: [AppController],
   providers: [AppService],
