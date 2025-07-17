@@ -97,7 +97,7 @@ export class AuthController {
 
   @Get('/profile')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ 
     summary: 'Get User Profile', 
     description: 'Retrieve profile information of authenticated user' 
