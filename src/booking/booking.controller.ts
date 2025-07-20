@@ -10,8 +10,8 @@ export class BookingController {
   constructor(private readonly bookingService: BookingService) {}
 
   @Post("/book")
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
+  // @UseGuards(JwtAuthGuard)
+  // @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: "Book a room",

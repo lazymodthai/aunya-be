@@ -1,30 +1,44 @@
-import { IsDateString, IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
+import { Transform } from "class-transformer";
 
 export class BookDto {
   @ApiProperty({
     type: Date,
   })
   @IsDateString()
-  checkIn: Date;
+  checkinDate: Date;
 
   @ApiProperty({
     type: Date,
   })
   @IsDateString()
-  checkOut: Date;
+  checkoutDate: Date;
 
   @ApiProperty({
     type: Number,
   })
   @IsNumber()
-  guestsNumber: number;
+  guestNumber: number;
+  
+  @ApiProperty({
+    type: Number,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Transform(({ value }) => value === 'null' ? null : value)
+  additionGuestNumber: number;
 
   @ApiProperty({
     type: String,
   })
   @IsString()
-  @IsNotEmpty()
-  status: string;
+  name: string;
+
+  @ApiProperty({
+    type: String,
+  })
+  @IsString()
+  phoneNumber: string;
 
 }

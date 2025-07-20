@@ -6,21 +6,33 @@ export class Booking {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'userId' })
-  user: User;
+  @Column()
+  refCode: string;
+
+  // @ManyToOne(() => User)
+  // @JoinColumn({ name: 'userId' })
+  // user: User;
+
+  // @Column()
+  // userId: number;
 
   @Column()
-  userId: number;
+  checkinDate: Date;
 
   @Column()
-  checkIn: Date;
+  checkoutDate: Date;
 
   @Column()
-  checkOut: Date;
+  guestNumber: number;
+
+  @Column({ nullable: true })
+  additionGuestNumber: number;
 
   @Column()
-  guestsNumber: number;
+  name: string;
+
+  @Column()
+  phoneNumber: string;
 
   @Column()
   status: string;
