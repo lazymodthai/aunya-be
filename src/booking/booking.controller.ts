@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { BookingService } from './booking.service';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BookDto } from './dto/book.dto';
@@ -28,4 +28,25 @@ export class BookingController {
       ...result,
     };
   }
+
+  @Get("/dates")
+  @ApiOperation({
+    summary: "Get all dates",
+    description: "Get all dates",
+  })
+  @HttpCode(HttpStatus.OK)
+  async getAllDate() {
+    return await this.bookingService.getAllDate();
+  }
+
+  @Get("/booked")
+  @ApiOperation({
+    summary: "Get booked rooms",
+    description: "Get booked rooms",
+  })
+  @HttpCode(HttpStatus.OK)
+  async getBookedRooms() {
+    return await this.bookingService.getAllBookedRooms();
+  }
+
 }
