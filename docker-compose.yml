@@ -15,17 +15,15 @@ services:
     ports:
       - "6379:6379"
 
-  # api:
-  #   build: .
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - postgres
-  #     - redis
-  #   environment:
-  #     - DATABASE_URL=postgresql://postgres:credit1234@postgres:5432/credit_db
-  #     - REDIS_HOST=redis
-  #     - JWT_SECRET="best-secret-key-of-the-world"
+  app:
+    image: lazymodthai/aunya-be:latest
+    env_file:
+      - ./.env
+    ports:
+      - "3005:3000"
+    depends_on:
+      - postgres
+      - redis
 
 volumes:
   postgres_data:
