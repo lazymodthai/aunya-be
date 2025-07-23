@@ -41,6 +41,16 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
+            echo "NIPA_CLOUD_ENDPOINT=${{ secrets.NIPA_CLOUD_ENDPOINT }}" > .env
+            echo "NIPA_CLOUD_BUCKET_NAME=${{ secrets.NIPA_CLOUD_BUCKET_NAME }}" >> .env
+            echo "NIPA_CLOUD_ACCESS_KEY_ID=${{ secrets.NIPA_CLOUD_ACCESS_KEY_ID }}" >> .env
+            echo "NIPA_CLOUD_SECRET_ACCESS_KEY=${{ secrets.NIPA_CLOUD_SECRET_ACCESS_KEY }}" >> .env
+            echo "DB_TYPE=${{ secrets.DB_TYPE }}" >> .env
+            echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
+            echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env
+            echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
+            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+            echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
             docker compose pull
             docker compose up -d
 
