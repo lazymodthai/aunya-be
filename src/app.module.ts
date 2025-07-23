@@ -6,21 +6,27 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { ObjectStorageModule } from './object-storage/object-storage.module';
 import { UploadedFileModule } from './uploaded-files/uploaded-file.module';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BookingModule } from './booking/booking.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
-    TypeOrmModule.forRoot({
-      type: process.env.DB_TYPE as any || 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432,
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || 'credit1234',
-      database: process.env.DB_NAME || 'credit_db',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true, // Only for development
+    ConfigModule.forRoot({
+      isGlobal: true, // Make ConfigModule available globally
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: configService.get<string>('DB_TYPE') as any,
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_NAME'),
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: true, // Only for development
+      }),
+      inject: [ConfigService],
     }),
     UsersModule,
     AuthModule,
