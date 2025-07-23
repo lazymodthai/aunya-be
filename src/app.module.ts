@@ -17,6 +17,7 @@ import { BookingModule } from './booking/booking.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
+        name: 'default', // Add a connection name to avoid the crypto issue
         type: configService.get<string>('DB_TYPE') as any,
         host: configService.get<string>('DB_HOST'),
         port: configService.get<number>('DB_PORT'),
