@@ -4,8 +4,6 @@ FROM node:18-alpine
 # Create app directory
 WORKDIR /usr/src/app
 
-# Set environment variables
-ARG ENV_FILE=./.env.prod
 # Enable Corepack to use the yarn version from package.json
 RUN corepack enable
 
@@ -13,8 +11,6 @@ RUN corepack enable
 COPY package*.json ./
 COPY .yarnrc.yml ./
 COPY .yarn ./.yarn
-COPY .${ENV_FILE} ./.env
-
 
 # Install dependencies
 # Corepack will now automatically use the correct yarn version (4.8.1)
