@@ -52,7 +52,8 @@ jobs:
             echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
             echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
             docker compose pull
-            docker compose up -d
+            docker compose up -
+            docker image prune -af --filter "until=72h"
 
       # Step 7: Clean up (optional but good practice)
       - name: Clean up
