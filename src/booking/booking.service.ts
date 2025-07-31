@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
 import { BookingEntity } from './booking.entity';
 import { BookDto } from './dto/book.dto';
+import { BookingStatus } from './enums/booking.enum';
 
 @Injectable()
 export class BookingService {
@@ -33,7 +34,9 @@ export class BookingService {
       additionGuestNumber: bookDto.additionGuestNumber,
       name: bookDto.name,
       phoneNumber: bookDto.phoneNumber,
-      status: 'PENDING',
+      status: BookingStatus.PENDING,
+      totalPrice: bookDto.totalPrice,
+      roomId: bookDto.roomId,
     });
 
     const savedBooking = await this.bookingRepository.save(booking);
@@ -47,7 +50,7 @@ export class BookingService {
   async getAllBookedRooms() {
     return await this.bookingRepository.find({
       where: {
-        status: 'COMPLETE',
+        status: BookingStatus.CONFIRMED,
       },
     })
   }
@@ -65,7 +68,7 @@ export class BookingService {
 
   return await this.bookingRepository.find({
     where: {
-      status: 'COMPLETE',
+      status: BookingStatus.CONFIRMED,
       createdAt: Between(startDate, endDate)
     },
   }).then((bookings) => {

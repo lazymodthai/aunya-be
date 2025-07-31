@@ -41,4 +41,17 @@ export class BookDto {
   @IsString()
   phoneNumber: string;
 
+  @ApiProperty({
+    type: Number,
+  })
+  @IsNumber()
+  @Transform(({ value }) => value === 'null' ? null : value)
+  totalPrice: number;
+
+  @ApiProperty({
+    type: String,
+  })
+  @IsString()
+  roomId: string;
+
 }

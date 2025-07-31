@@ -1,5 +1,8 @@
 import { UserEntity } from 'src/users/users.entity';
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { RoomEntity } from './rooms.entity';
+import { Optional } from '@nestjs/common';
+import { BookingStatus } from './enums/booking.enum';
 
 @Entity('booking')
 export class BookingEntity {
@@ -8,13 +11,6 @@ export class BookingEntity {
 
   @Column()
   refCode: string;
-
-  // @ManyToOne(() => User)
-  // @JoinColumn({ name: 'userId' })
-  // user: User;
-
-  // @Column()
-  // userId: number;
 
   @Column()
   checkinDate: Date;
@@ -26,6 +22,7 @@ export class BookingEntity {
   guestNumber: number;
 
   @Column({ nullable: true })
+  @Optional()
   additionGuestNumber: number;
 
   @Column()
@@ -34,13 +31,27 @@ export class BookingEntity {
   @Column()
   phoneNumber: string;
 
-  @Column()
-  status: string;
+  @Column({ nullable: true })
+  totalPrice: number;
+
+  @Column({
+    type: 'enum',
+    enum: BookingStatus,
+    default: BookingStatus.PENDING,
+  })
+  status: BookingStatus;
 
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @Column()
+  roomId: string;
+
+  @ManyToOne(() => RoomEntity, room => room.bookings, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'roomId' })
+  room: RoomEntity;
   
 }
