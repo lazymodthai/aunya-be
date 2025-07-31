@@ -53,7 +53,7 @@ export class AuthService {
     };
   }
 
-  async validateUser(userId: number): Promise<any> {
+  async validateUser(userId: string): Promise<any> {
     const user = await this.usersService.findById(userId);
     if (!user) {
       throw new UnauthorizedException('User not found');

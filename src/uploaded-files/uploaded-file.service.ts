@@ -16,7 +16,7 @@ export class UploadedFileService {
     return this.uploadedFileRepository.save(uploadedFile);
   }
 
-  async findOne(id: number): Promise<UploadedFile | null> {
+  async findOne(id: string): Promise<UploadedFile | null> {
     return this.uploadedFileRepository.findOne({ where: { id } });
   }
 
@@ -28,7 +28,7 @@ export class UploadedFileService {
     return this.uploadedFileRepository.find();
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     await this.uploadedFileRepository.delete(id);
   }
 }
