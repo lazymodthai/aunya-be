@@ -72,6 +72,20 @@ export class BookingService {
     }
   }
 
+  async getBookedRooms(phoneNumber: string): Promise<BookingEntity[]> {
+    try {
+      const bookings = await this.bookingRepository.find({
+        where: {
+          phoneNumber: phoneNumber,
+        },
+      });
+
+      return bookings;
+    } catch (error) {
+      throw new InternalServerErrorException("Database query failed");
+    }
+  }
+
   async getAllDate() {
     const startDate = new Date();
     startDate.setDate(1);

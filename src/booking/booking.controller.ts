@@ -86,4 +86,41 @@ export class BookingController {
       throw new InternalServerErrorException('Failed to retrieve booking');
     }
   }
+
+  @Get("/find-by-phone")
+  @ApiOperation({
+    summary: "Get booked data by phone number",
+    description: "Retrieve booking information using phone number",
+  })
+  @ApiQuery({
+    name: 'Phone Number',
+    description: 'Booking phone number',
+    type: 'string',
+    required: true
+  })
+  @HttpCode(HttpStatus.OK)
+  async getBookedRoomByPhoneNumber(@Query('phonenumber') phoneNumber: string) {
+    if (!phoneNumber) {
+      throw new BadRequestException('Phone number is required');
+    }
+
+    try {
+      const bookings = await this.bookingService.getBookedRooms(phoneNumber);
+      
+      if (!bookings || !bookings.length) {
+        throw new NotFoundException(`Booking with phone number '${phoneNumber}' not found`);
+      }
+      
+      return {
+        success: true,
+        data: bookings,
+        message: 'Booking retrieved successfully'
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to retrieve booking');
+    }
+  }
 }
