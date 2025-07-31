@@ -1,8 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { User } from '../users/users.entity';
+import { UserEntity } from '../users/users.entity';
 
 @Entity('uploaded_files')
-export class UploadedFile {
+export class UploadedFileEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -18,9 +18,9 @@ export class UploadedFile {
   @Column()
   size: number;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => UserEntity)
   @JoinColumn({ name: 'uploaderId' })
-  uploader: User;
+  uploader: UserEntity;
 
   @Column()
   uploaderId: number;

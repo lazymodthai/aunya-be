@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
-import { Booking } from './booking.entity';
+import { BookingEntity } from './booking.entity';
 import { BookDto } from './dto/book.dto';
 
 @Injectable()
 export class BookingService {
   constructor(
-    @InjectRepository(Booking)
-    private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(BookingEntity)
+    private readonly bookingRepository: Repository<BookingEntity>,
   ) {}
 
   private generateRefCode(): string {
