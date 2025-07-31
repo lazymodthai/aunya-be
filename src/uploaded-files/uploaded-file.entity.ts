@@ -3,8 +3,8 @@ import { User } from '../users/users.entity';
 
 @Entity('uploaded_files')
 export class UploadedFile {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   s3Key: string;
