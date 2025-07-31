@@ -1,10 +1,13 @@
 import { UserEntity } from 'src/users/users.entity';
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { RoomEntity } from './rooms.entity';
 import { Optional } from '@nestjs/common';
 import { BookingStatus } from './enums/booking.enum';
 
 @Entity('booking')
+@Index(['refCode'])
+@Index(['checkinDate', 'checkoutDate'])
+@Index(['status'])
 export class BookingEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -52,6 +55,5 @@ export class BookingEntity {
 
   @ManyToOne(() => RoomEntity, room => room.bookings, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'roomId' })
-  room: RoomEntity;
-  
+  room: RoomEntity;  
 }

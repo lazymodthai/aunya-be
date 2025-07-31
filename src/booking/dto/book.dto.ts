@@ -53,5 +53,4 @@ export class BookDto {
   })
   @IsString()
   roomId: string;
-
 }
