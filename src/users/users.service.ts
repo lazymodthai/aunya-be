@@ -18,7 +18,7 @@ export class UsersService {
   }
   
   async register(registerDto: RegisterDto): Promise<User> {
-    const { email, password, firstName, lastName } = registerDto;
+    const { email, password, firstName, lastName, phoneNumber } = registerDto;
 
     try {
       // ตรวจสอบว่า email ซ้ำหรือไม่
@@ -40,6 +40,7 @@ export class UsersService {
         password: hashedPassword,
         firstName,
         lastName,
+        phoneNumber
       });
 
       // บันทึกลงฐานข้อมูล
