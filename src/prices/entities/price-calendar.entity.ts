@@ -16,6 +16,13 @@ export class PriceCalendarEntity {
   @Column({ type: 'enum', enum: DayType, default: DayType.WEEKDAY })
   dayType: DayType;
 
+  @Column({ 
+    type: 'varchar', 
+    length: 255, 
+    nullable: true,
+  })
+  description: string | null;
+
   @ManyToOne(() => RoomEntity)
   @JoinColumn({ name: 'roomId' })
   room: RoomEntity;
