@@ -1,8 +1,8 @@
 import { UserEntity } from 'src/users/entities/users.entity';
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
-import { RoomEntity } from './rooms.entity';
 import { Optional } from '@nestjs/common';
-import { BookingStatus } from '../enums/booking.enum';
+import { BookingStatus } from 'src/booking/enums/booking.enum';
+import { RoomEntity } from 'src/booking/entities/rooms.entity';
 
 @Entity('booking')
 @Index(['refCode'])

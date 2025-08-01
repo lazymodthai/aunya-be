@@ -1,9 +1,10 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
-import { BookingEntity } from './entities/booking.entity';
 import { BookDto } from './dto/book.dto';
 import { BookingStatus } from './enums/booking.enum';
+import { GeneratePriceDto } from '../prices/dto/generate-price.dto';
+import { BookingEntity } from './entities/booking.entity';
 
 @Injectable()
 export class BookingService {
@@ -112,5 +113,9 @@ export class BookingService {
           };
         });
       });
+  }
+
+  async GeneratePrice(prices: GeneratePriceDto) {
+
   }
 }
