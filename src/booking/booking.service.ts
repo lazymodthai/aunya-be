@@ -1,7 +1,7 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
-import { BookingEntity } from './booking.entity';
+import { BookingEntity } from './entities/booking.entity';
 import { BookDto } from './dto/book.dto';
 import { BookingStatus } from './enums/booking.enum';
 
@@ -72,7 +72,7 @@ export class BookingService {
     }
   }
 
-  async getBookedRooms(phoneNumber: string): Promise<BookingEntity[]> {
+  async getBookedRoomsByPhoneNumber(phoneNumber: string): Promise<BookingEntity[]> {
     try {
       const bookings = await this.bookingRepository.find({
         where: {

@@ -1,5 +1,5 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
-import { RoomStatus } from "./enums/booking.enum";
+import { RoomStatus } from "../enums/booking.enum";
 import { BookingEntity } from "./booking.entity";
 
 @Entity('rooms')

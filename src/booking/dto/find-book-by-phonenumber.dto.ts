@@ -1,10 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNotEmpty, IsString } from "class-validator";
 
-export class FindBookingDto {
-  @ApiProperty({
-    type: String,
-  })
+export class FindBookingByPhoneNumberDto {
   @IsString()
   @IsNotEmpty()
   phoneNumber: string;

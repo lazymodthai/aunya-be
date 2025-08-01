@@ -2,8 +2,6 @@ import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, Inter
 import { BookingService } from './booking.service';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { BookDto } from './dto/book.dto';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { FindBookingDto } from './dto/find-book.dto';
 
 @ApiTags("Booking")
 @Controller("booking")
@@ -93,19 +91,19 @@ export class BookingController {
     description: "Retrieve booking information using phone number",
   })
   @ApiQuery({
-    name: 'Phone Number',
+    name: 'phoneNumber',
     description: 'Booking phone number',
     type: 'string',
     required: true
   })
   @HttpCode(HttpStatus.OK)
-  async getBookedRoomByPhoneNumber(@Query('phonenumber') phoneNumber: string) {
+  async getBookedRoomByPhoneNumber(@Query('phoneNumber') phoneNumber: string) {
     if (!phoneNumber) {
       throw new BadRequestException('Phone number is required');
     }
 
     try {
-      const bookings = await this.bookingService.getBookedRooms(phoneNumber);
+      const bookings = await this.bookingService.getBookedRoomsByPhoneNumber(phoneNumber);
       
       if (!bookings || !bookings.length) {
         throw new NotFoundException(`Booking with phone number '${phoneNumber}' not found`);
