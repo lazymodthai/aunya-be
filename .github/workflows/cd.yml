@@ -51,6 +51,8 @@ jobs:
             echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
             echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
             echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
+            echo "BOT_API_CLIENT_ID=${{ secrets.BOT_API_CLIENT_ID }}" >> .env
+            echo "BOT_API_URL=${{ secrets.BOT_API_URL }}" >> .env
             docker compose pull
             docker compose up -
             docker image prune -af --filter "until=72h"
