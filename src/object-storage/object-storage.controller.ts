@@ -46,7 +46,7 @@ export class ObjectStorageController {
   }
 
   @Get('metadata/:id')
-  async getUploadedFileMetadata(@Param('id') id: number): Promise<UploadedFileResponseDto> {
+  async getUploadedFileMetadata(@Param('id') id: string): Promise<UploadedFileResponseDto> {
     const uploadedFile = await this.uploadedFileService.findOne(id);
     if (!uploadedFile) {
       throw new BadRequestException(`Uploaded file with ID ${id} not found`);
@@ -89,7 +89,7 @@ export class ObjectStorageController {
   }
 
   @Delete('metadata/:id')
-  async deleteUploadedFileMetadata(@Param('id') id: number) {
+  async deleteUploadedFileMetadata(@Param('id') id: string) {
     const uploadedFile = await this.uploadedFileService.findOne(id);
     if (!uploadedFile) {
       throw new BadRequestException(`Uploaded file with ID ${id} not found`);

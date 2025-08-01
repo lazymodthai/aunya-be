@@ -1,10 +1,10 @@
+import { UserEntity } from 'src/users/entities/users.entity';
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { User } from '../users/users.entity';
 
 @Entity('uploaded_files')
-export class UploadedFile {
-  @PrimaryGeneratedColumn()
-  id: number;
+export class UploadedFileEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   s3Key: string;
@@ -18,9 +18,9 @@ export class UploadedFile {
   @Column()
   size: number;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => UserEntity)
   @JoinColumn({ name: 'uploaderId' })
-  uploader: User;
+  uploader: UserEntity;
 
   @Column()
   uploaderId: number;

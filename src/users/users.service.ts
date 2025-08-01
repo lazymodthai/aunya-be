@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { RegisterDto } from './dto/register.dto';
-import { User } from './users.entity';
+import { UserEntity } from './entities/users.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
@@ -8,8 +8,8 @@ import * as bcrypt from 'bcrypt';
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectRepository(User)
-    private readonly usersRepository: Repository<User>,
+    @InjectRepository(UserEntity)
+    private readonly usersRepository: Repository<UserEntity>,
   ) {}
 
 
@@ -17,8 +17,8 @@ export class UsersService {
     return 'Users service is up and running!';
   }
   
-  async register(registerDto: RegisterDto): Promise<User> {
-    const { email, password, firstName, lastName } = registerDto;
+  async register(registerDto: RegisterDto): Promise<UserEntity> {
+    const { email, password, firstName, lastName, phoneNumber } = registerDto;
 
     try {
       // ตรวจสอบว่า email ซ้ำหรือไม่
@@ -40,6 +40,7 @@ export class UsersService {
         password: hashedPassword,
         firstName,
         lastName,
+        phoneNumber
       });
 
       // บันทึกลงฐานข้อมูล
@@ -47,7 +48,7 @@ export class UsersService {
 
       // ลบ password ออกจาก response
       const { password: _, ...userWithoutPassword } = savedUser;
-      return userWithoutPassword as User;
+      return userWithoutPassword as UserEntity;
 
     } catch (error) {
       if (error instanceof ConflictException) {
@@ -57,11 +58,11 @@ export class UsersService {
     }
   }
 
-  async findByEmail(email: string): Promise<User | null> {
+  async findByEmail(email: string): Promise<UserEntity | null> {
     return this.usersRepository.findOne({ where: { email } });
   }
 
-  async findById(id: number): Promise<User | null> {
+  async findById(id: string): Promise<UserEntity | null> {
     return this.usersRepository.findOne({ where: { id } });
   }
 }
