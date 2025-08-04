@@ -4944,7 +4944,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chalk@npm:^4.0.0, chalk@npm:^4.0.2, chalk@npm:^4.1.0, chalk@npm:^4.1.2":
+"chalk@npm:4, chalk@npm:^4.0.0, chalk@npm:^4.0.2, chalk@npm:^4.1.0, chalk@npm:^4.1.2":
   version: 4.1.2
   resolution: "chalk@npm:4.1.2"
   dependencies:
@@ -5334,6 +5334,7 @@ __metadata:
     "@types/supertest": "npm:^6.0.2"
     axios: "npm:^1.11.0"
     bcrypt: "npm:^6.0.0"
+    chalk: "npm:4"
     class-transformer: "npm:^0.5.1"
     class-validator: "npm:^0.14.2"
     eslint: "npm:^9.18.0"
