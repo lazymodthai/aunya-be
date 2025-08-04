@@ -1,21 +1,25 @@
 import { Injectable, ConflictException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 
 import { GeneratePriceDto } from './dto/generate-price.dto';
 import { PriceCalendarEntity } from './entities/price-calendar.entity';
-import { DayType } from 'src/booking/enums/booking.enum';
+import { BookingStatus, DayType, RoomStatus } from 'src/booking/enums/booking.enum';
+import { GenerateDiscountCodeDto } from './dto/generate-discount-code.dto';
+import { GetPriceByMonthDto } from './dto/get-price-by-month.dto';
+import { BookingEntity } from '../booking/entities/booking.entity';
 
-@Injectable()
 export class PricesService {
   private readonly logger = new Logger(PricesService.name);
 
   constructor(
     @InjectRepository(PriceCalendarEntity)
     private readonly priceCalendarRepository: Repository<PriceCalendarEntity>,
+    @InjectRepository(BookingEntity)
+    private readonly bookingRepository: Repository<BookingEntity>,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
   ) {}
@@ -28,9 +32,7 @@ export class PricesService {
       throw new ConflictException(`ราคาสำหรับห้อง ID: ${roomId} ได้ถูกสร้างไว้แล้ว`);
     }
 
-    // 1. (แก้ไข) ดึงข้อมูลวันหยุดพร้อมคำอธิบายภาษาไทย
     const holidays = await this._fetchHolidays();
-    // เปลี่ยนจาก Set เป็น Map เพื่อเก็บชื่อวันหยุดภาษาไทย โดยมี key เป็น 'YYYY-MM-DD' และ value เป็น 'ชื่อวันหยุด'
     const holidayMap = new Map<string, string>(
       holidays.map(h => [h.Date, h.HolidayDescriptionThai])
     );
@@ -46,23 +48,19 @@ export class PricesService {
 
       let price: number;
       let dayType: DayType;
-      // 2. (เพิ่ม) ประกาศตัวแปรสำหรับ description และกำหนดค่าเริ่มต้นเป็น null
       let description: string | null = null; 
 
       if (holidayMap.has(currentDateStr)) {
         dayType = DayType.HOLIDAY;
         price = holidayPrice;
-        // 3. (แก้ไข) ดึงชื่อวันหยุดจาก Map มาใส่ใน description
         description = holidayMap.get(currentDateStr) || ''; 
       } else if (dayOfWeek === 0 || dayOfWeek === 6) {
         dayType = DayType.WEEKEND;
         price = weekendPrice;
-        // 4. (แก้ไข) กำหนด description สำหรับวันเสาร์-อาทิตย์
         description = dayOfWeek === 0 ? 'วันอาทิตย์' : 'วันเสาร์';
       } else {
         dayType = DayType.WEEKDAY;
         price = weekdayPrice;
-        // สำหรับวันธรรมดา description จะยังเป็น null เหมือนเดิม
       }
       
       const newPriceEntry = this.priceCalendarRepository.create({
@@ -70,7 +68,7 @@ export class PricesService {
         price,
         dayType,
         roomId,
-        description, // 5. (เพิ่ม) ส่ง description เข้าไปตอนสร้าง Entity
+        description,
       });
       pricesToCreate.push(newPriceEntry);
     }
@@ -83,7 +81,6 @@ export class PricesService {
     };
   }
 
-  // 6. (แก้ไข) ปรับแก้ Return Type ของฟังก์ชันให้รวม HolidayDescriptionThai ด้วย
   private async _fetchHolidays(): Promise<{ Date: string; HolidayDescriptionThai: string }[]> {
     const clientId = this.configService.get<string>('BOT_API_CLIENT_ID');
     if (!clientId) {
@@ -100,11 +97,65 @@ export class PricesService {
           headers: { 'X-IBM-Client-Id': clientId },
         }),
       );
-      // API response ที่ได้จะมีข้อมูลครบถ้วน เราแค่ return มันออกไปทั้งหมด
       return response.data.result.data;
     } catch (error) {
       this.logger.error('Failed to fetch holidays from BOT API', error.stack);
       throw new InternalServerErrorException('ไม่สามารถดึงข้อมูลวันหยุดได้');
     }
   }
+
+  async generateDiscountCode (generateDiscountCode: GenerateDiscountCodeDto) {
+
+  }
+
+  async getPriceByMonth(getPriceByMonth: GetPriceByMonthDto): Promise<{message: string, prices: {date: Date, price: number, status: RoomStatus}[]}> {
+      if (getPriceByMonth.month < 1 || getPriceByMonth.month > 12) {
+          throw new ConflictException('เดือนต้องอยู่ระหว่าง 1 ถึง 12');
+      }
+      
+      const startDate = new Date(getPriceByMonth.year, getPriceByMonth.month - 1, 1);
+      const endDate = new Date(getPriceByMonth.year, getPriceByMonth.month, 0);
+
+      const prices = await this.priceCalendarRepository.find({
+          where: {
+              date: Between(startDate, endDate),
+              roomId: getPriceByMonth.roomId
+          },
+          order: {
+              date: 'ASC'
+          }
+      });
+
+      const confirmedBookings = await this.bookingRepository.find({
+          where: {
+              roomId: getPriceByMonth.roomId,
+              status: BookingStatus.CONFIRMED,
+              checkinDate: LessThanOrEqual(endDate),
+              checkoutDate: MoreThan(startDate)
+          }
+      });
+
+      const isDateBooked = (checkDate: Date): boolean => {
+        for (const booking of confirmedBookings) {
+            const checkin = new Date(booking.checkinDate);
+            const checkout = new Date(booking.checkoutDate);
+            
+            if (checkDate >= checkin && checkDate < checkout) {
+                return true;
+            }
+        }
+        return false;
+     };
+
+      return {
+          message: 'ดึงข้อมูลราคาสำเร็จ',
+          prices: prices.length === 0 ? [] : prices.map(price => ({
+              date: price.date,
+              price: Number(price.price),
+              status: isDateBooked(new Date(price.date)) ? RoomStatus.UNAVAILABLE : RoomStatus.AVAILABLE
+          }))
+      };
+  }
+
+
 }

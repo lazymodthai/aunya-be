@@ -1,18 +1,19 @@
 import { ConflictException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, LessThan, MoreThan, Raw, Repository } from 'typeorm';
+import { Between, LessThan, MoreThan, Repository } from 'typeorm';
 import { BookDto } from './dto/book.dto';
 import { BookingStatus } from './enums/booking.enum';
 import { GeneratePriceDto } from '../prices/dto/generate-price.dto';
 import { BookingEntity } from './entities/booking.entity';
-import { RoomEntity } from './entities/rooms.entity';
-import { format } from 'date-fns';
+import { PriceCalendarEntity } from 'src/prices/entities/price-calendar.entity';
 
 @Injectable()
 export class BookingService {
   constructor(
     @InjectRepository(BookingEntity)
-    private readonly bookingRepository: Repository<BookingEntity>
+    private readonly bookingRepository: Repository<BookingEntity>,
+    @InjectRepository(PriceCalendarEntity)
+    private readonly pricesRepository: Repository<PriceCalendarEntity>
   ) {}
 
   private generateRefCode(): string {
@@ -30,25 +31,34 @@ export class BookingService {
 
   private async checkAvailableRoom(checkinDate: Date, checkoutDate: Date, roomId: string): Promise<boolean> {
     if (!checkinDate || !checkoutDate || !roomId) {
-      return true;
+      return true; 
     }
-
-    // 2. ใช้ฟังก์ชัน format เพื่อแปลง Date object เป็น String ที่ต้องการ
-    // 'yyyy-MM-dd' คือรูปแบบที่เราต้องการ (เช่น 2025-08-22)
-    const checkinDateStr = format(checkinDate, 'yyyy-MM-dd');
-    const checkoutDateStr = format(checkoutDate, 'yyyy-MM-dd');
 
     const conflictingBooking = await this.bookingRepository.findOne({
       where: {
         roomId: roomId,
         status: BookingStatus.CONFIRMED,
-        checkinDate: Raw(alias => `CAST(${alias} AS DATE) < :date`, { date: checkoutDateStr }),
-        checkoutDate: Raw(alias => `CAST(${alias} AS DATE) > :date`, { date: checkinDateStr }),
+        checkinDate: LessThan(checkoutDate),
+        checkoutDate: MoreThan(checkinDate),
       },
     });
 
     return !!conflictingBooking;
-}
+  }
+
+  private async getPrices(checkinDate: Date, checkoutDate: Date,roomId: string): Promise<{date: Date, price: number}[]> {
+    const prices = await this.pricesRepository.find({
+      where: {
+        roomId: roomId,
+        date: Between(new Date(checkinDate), new Date(checkoutDate)),
+      },
+    });
+
+    return prices.map((price) => ({
+      date: price.date,
+      price: price.price,
+    }));
+  }
 
   async createBooking(bookDto: BookDto) {
     const refCode = this.generateRefCode();
@@ -73,10 +83,12 @@ export class BookingService {
     });
 
     const savedBooking = await this.bookingRepository.save(booking);
+    const prices = await this.getPrices(bookDto.checkinDate, bookDto.checkoutDate, bookDto.roomId);
 
     return {
       refCode: savedBooking.refCode,
       id: savedBooking.id,
+      prices: prices
     };
   }
 
