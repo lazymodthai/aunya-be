@@ -1,10 +1,12 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { ConflictException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, LessThan, MoreThan, Raw, Repository } from 'typeorm';
 import { BookDto } from './dto/book.dto';
 import { BookingStatus } from './enums/booking.enum';
 import { GeneratePriceDto } from '../prices/dto/generate-price.dto';
 import { BookingEntity } from './entities/booking.entity';
+import { RoomEntity } from './entities/rooms.entity';
+import { format } from 'date-fns';
 
 @Injectable()
 export class BookingService {
@@ -26,8 +28,36 @@ export class BookingService {
     return `AY${year}${month}${day}${randomNum}`;
   }
 
+  private async checkAvailableRoom(checkinDate: Date, checkoutDate: Date, roomId: string): Promise<boolean> {
+    if (!checkinDate || !checkoutDate || !roomId) {
+      return true;
+    }
+
+    // 2. ใช้ฟังก์ชัน format เพื่อแปลง Date object เป็น String ที่ต้องการ
+    // 'yyyy-MM-dd' คือรูปแบบที่เราต้องการ (เช่น 2025-08-22)
+    const checkinDateStr = format(checkinDate, 'yyyy-MM-dd');
+    const checkoutDateStr = format(checkoutDate, 'yyyy-MM-dd');
+
+    const conflictingBooking = await this.bookingRepository.findOne({
+      where: {
+        roomId: roomId,
+        status: BookingStatus.CONFIRMED,
+        checkinDate: Raw(alias => `CAST(${alias} AS DATE) < :date`, { date: checkoutDateStr }),
+        checkoutDate: Raw(alias => `CAST(${alias} AS DATE) > :date`, { date: checkinDateStr }),
+      },
+    });
+
+    return !!conflictingBooking;
+}
+
   async createBooking(bookDto: BookDto) {
     const refCode = this.generateRefCode();
+
+    const isUnavailable = await this.checkAvailableRoom(bookDto.checkinDate, bookDto.checkoutDate, bookDto.roomId);
+    
+    if (isUnavailable) {
+      throw new ConflictException(`This room is unavailable for the selected dates.`); 
+    }
 
     const booking = this.bookingRepository.create({
       refCode,
@@ -115,7 +145,4 @@ export class BookingService {
       });
   }
 
-  async GeneratePrice(prices: GeneratePriceDto) {
-
-  }
 }
