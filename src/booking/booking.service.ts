@@ -50,7 +50,7 @@ export class BookingService {
     const prices = await this.pricesRepository.find({
       where: {
         roomId: roomId,
-        date: Between(new Date(checkinDate), new Date(checkoutDate)),
+        date: Between(new Date(checkinDate), new Date(new Date(checkoutDate).getTime() - 24 * 60 * 60 * 1000)),
       },
     });
 
