@@ -1,16 +1,19 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { ConflictException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, LessThan, MoreThan, Repository } from 'typeorm';
 import { BookDto } from './dto/book.dto';
 import { BookingStatus } from './enums/booking.enum';
 import { GeneratePriceDto } from '../prices/dto/generate-price.dto';
 import { BookingEntity } from './entities/booking.entity';
+import { PriceCalendarEntity } from 'src/prices/entities/price-calendar.entity';
 
 @Injectable()
 export class BookingService {
   constructor(
     @InjectRepository(BookingEntity)
-    private readonly bookingRepository: Repository<BookingEntity>
+    private readonly bookingRepository: Repository<BookingEntity>,
+    @InjectRepository(PriceCalendarEntity)
+    private readonly pricesRepository: Repository<PriceCalendarEntity>
   ) {}
 
   private generateRefCode(): string {
@@ -26,8 +29,45 @@ export class BookingService {
     return `AY${year}${month}${day}${randomNum}`;
   }
 
+  private async checkAvailableRoom(checkinDate: Date, checkoutDate: Date, roomId: string): Promise<boolean> {
+    if (!checkinDate || !checkoutDate || !roomId) {
+      return true; 
+    }
+
+    const conflictingBooking = await this.bookingRepository.findOne({
+      where: {
+        roomId: roomId,
+        status: BookingStatus.CONFIRMED,
+        checkinDate: LessThan(checkoutDate),
+        checkoutDate: MoreThan(checkinDate),
+      },
+    });
+
+    return !!conflictingBooking;
+  }
+
+  private async getPrices(checkinDate: Date, checkoutDate: Date,roomId: string): Promise<{date: Date, price: number}[]> {
+    const prices = await this.pricesRepository.find({
+      where: {
+        roomId: roomId,
+        date: Between(new Date(checkinDate), new Date(new Date(checkoutDate).getTime() - 24 * 60 * 60 * 1000)),
+      },
+    });
+
+    return prices.map((price) => ({
+      date: price.date,
+      price: price.price,
+    }));
+  }
+
   async createBooking(bookDto: BookDto) {
     const refCode = this.generateRefCode();
+
+    const isUnavailable = await this.checkAvailableRoom(bookDto.checkinDate, bookDto.checkoutDate, bookDto.roomId);
+    
+    if (isUnavailable) {
+      throw new ConflictException(`This room is unavailable for the selected dates.`); 
+    }
 
     const booking = this.bookingRepository.create({
       refCode,
@@ -43,10 +83,12 @@ export class BookingService {
     });
 
     const savedBooking = await this.bookingRepository.save(booking);
+    const prices = await this.getPrices(bookDto.checkinDate, bookDto.checkoutDate, bookDto.roomId);
 
     return {
       refCode: savedBooking.refCode,
       id: savedBooking.id,
+      prices: prices
     };
   }
 
@@ -115,7 +157,4 @@ export class BookingService {
       });
   }
 
-  async GeneratePrice(prices: GeneratePriceDto) {
-
-  }
 }

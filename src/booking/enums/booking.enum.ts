@@ -13,4 +13,5 @@ export enum BookingStatus {
 export enum RoomStatus {
   AVAILABLE = 'Available',
   UNAVAILABLE = 'Unavailable',
+  MAINTENANCE = 'Maintenance',
 }
