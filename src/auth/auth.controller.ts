@@ -59,7 +59,7 @@ export class AuthController {
           properties: {
             id: { type: 'number', example: 1 },
             email: { type: 'string', example: 'user@example.com' },
-            name: { type: 'string', example: 'John Doe' }
+            name: { type: 'string', example: 'John Doe' },
           }
         }
       }
