@@ -2,10 +2,9 @@ import { ConflictException, Injectable, InternalServerErrorException } from '@ne
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, LessThan, MoreThan, Repository } from 'typeorm';
 import { BookDto } from './dto/book.dto';
-import { BookingStatus } from './enums/booking.enum';
-import { GeneratePriceDto } from '../prices/dto/generate-price.dto';
-import { BookingEntity } from './entities/booking.entity';
-import { PriceCalendarEntity } from 'src/prices/entities/price-calendar.entity';
+import { BookingStatus } from '@/constants/booking.enum';
+import { BookingEntity } from '@/entities/booking.entity';
+import { PriceCalendarEntity } from 'entities/price-calendar.entity';
 
 @Injectable()
 export class BookingService {
@@ -14,7 +13,7 @@ export class BookingService {
     private readonly bookingRepository: Repository<BookingEntity>,
     @InjectRepository(PriceCalendarEntity)
     private readonly pricesRepository: Repository<PriceCalendarEntity>
-  ) {}
+  ) { }
 
   private generateRefCode(): string {
     const now = new Date();
@@ -31,7 +30,7 @@ export class BookingService {
 
   private async checkAvailableRoom(checkinDate: Date, checkoutDate: Date, roomId: string): Promise<boolean> {
     if (!checkinDate || !checkoutDate || !roomId) {
-      return true; 
+      return true;
     }
 
     const conflictingBooking = await this.bookingRepository.findOne({
@@ -46,7 +45,7 @@ export class BookingService {
     return !!conflictingBooking;
   }
 
-  private async getPrices(checkinDate: Date, checkoutDate: Date,roomId: string): Promise<{date: Date, price: number}[]> {
+  private async getPrices(checkinDate: Date, checkoutDate: Date, roomId: string): Promise<{ date: Date, price: number }[]> {
     const prices = await this.pricesRepository.find({
       where: {
         roomId: roomId,
@@ -64,9 +63,9 @@ export class BookingService {
     const refCode = this.generateRefCode();
 
     const isUnavailable = await this.checkAvailableRoom(bookDto.checkinDate, bookDto.checkoutDate, bookDto.roomId);
-    
+
     if (isUnavailable) {
-      throw new ConflictException(`This room is unavailable for the selected dates.`); 
+      throw new ConflictException(`This room is unavailable for the selected dates.`);
     }
 
     const booking = this.bookingRepository.create({

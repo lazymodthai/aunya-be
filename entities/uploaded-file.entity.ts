@@ -1,5 +1,5 @@
-import { UserEntity } from 'src/users/entities/users.entity';
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { UserEntity } from 'entities/users.entity';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 
 @Entity('uploaded_files')
 export class UploadedFileEntity {

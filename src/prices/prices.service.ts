@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, InternalServerErrorException, Logger } from '@nestjs/common';
+import { ConflictException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
@@ -6,11 +6,11 @@ import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 
 import { GeneratePriceDto } from './dto/generate-price.dto';
-import { PriceCalendarEntity } from './entities/price-calendar.entity';
-import { BookingStatus, DayType, RoomStatus } from 'src/booking/enums/booking.enum';
+import { PriceCalendarEntity } from '@/entities/price-calendar.entity';
+import { BookingStatus, DayType, RoomStatus } from 'constants/booking.enum';
 import { GenerateDiscountCodeDto } from './dto/generate-discount-code.dto';
 import { GetPriceByMonthDto } from './dto/get-price-by-month.dto';
-import { BookingEntity } from '../booking/entities/booking.entity';
+import { BookingEntity } from '@/entities/booking.entity';
 
 export class PricesService {
   private readonly logger = new Logger(PricesService.name);
@@ -22,7 +22,7 @@ export class PricesService {
     private readonly bookingRepository: Repository<BookingEntity>,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async generatePrices(generatePriceDto: GeneratePriceDto): Promise<{ message: string; count: number }> {
     const { roomId, weekdayPrice, weekendPrice, holidayPrice } = generatePriceDto;
@@ -40,7 +40,7 @@ export class PricesService {
     const pricesToCreate: PriceCalendarEntity[] = [];
     const startDate = new Date();
     const endDate = new Date();
-    endDate.setFullYear(startDate.getFullYear() + 1); 
+    endDate.setFullYear(startDate.getFullYear() + 1);
 
     for (let day = new Date(startDate); day <= endDate; day.setDate(day.getDate() + 1)) {
       const currentDateStr = day.toISOString().split('T')[0];
@@ -48,12 +48,12 @@ export class PricesService {
 
       let price: number;
       let dayType: DayType;
-      let description: string | null = null; 
+      let description: string | null = null;
 
       if (holidayMap.has(currentDateStr)) {
         dayType = DayType.HOLIDAY;
         price = holidayPrice;
-        description = holidayMap.get(currentDateStr) || ''; 
+        description = holidayMap.get(currentDateStr) || '';
       } else if (dayOfWeek === 0 || dayOfWeek === 6) {
         dayType = DayType.WEEKEND;
         price = weekendPrice;
@@ -62,7 +62,7 @@ export class PricesService {
         dayType = DayType.WEEKDAY;
         price = weekdayPrice;
       }
-      
+
       const newPriceEntry = this.priceCalendarRepository.create({
         date: currentDateStr,
         price,
@@ -104,57 +104,57 @@ export class PricesService {
     }
   }
 
-  async generateDiscountCode (generateDiscountCode: GenerateDiscountCodeDto) {
+  async generateDiscountCode(_generateDiscountCode: GenerateDiscountCodeDto) {
 
   }
 
-  async getPriceByMonth(getPriceByMonth: GetPriceByMonthDto): Promise<{message: string, prices: {date: Date, price: number, status: RoomStatus}[]}> {
-      if (getPriceByMonth.month < 1 || getPriceByMonth.month > 12) {
-          throw new ConflictException('เดือนต้องอยู่ระหว่าง 1 ถึง 12');
+  async getPriceByMonth(getPriceByMonth: GetPriceByMonthDto): Promise<{ message: string, prices: { date: Date, price: number, status: RoomStatus }[] }> {
+    if (getPriceByMonth.month < 1 || getPriceByMonth.month > 12) {
+      throw new ConflictException('เดือนต้องอยู่ระหว่าง 1 ถึง 12');
+    }
+
+    const startDate = new Date(getPriceByMonth.year, getPriceByMonth.month - 1, 1);
+    const endDate = new Date(getPriceByMonth.year, getPriceByMonth.month, 0);
+
+    const prices = await this.priceCalendarRepository.find({
+      where: {
+        date: Between(startDate, endDate),
+        roomId: getPriceByMonth.roomId
+      },
+      order: {
+        date: 'ASC'
       }
-      
-      const startDate = new Date(getPriceByMonth.year, getPriceByMonth.month - 1, 1);
-      const endDate = new Date(getPriceByMonth.year, getPriceByMonth.month, 0);
+    });
 
-      const prices = await this.priceCalendarRepository.find({
-          where: {
-              date: Between(startDate, endDate),
-              roomId: getPriceByMonth.roomId
-          },
-          order: {
-              date: 'ASC'
-          }
-      });
+    const confirmedBookings = await this.bookingRepository.find({
+      where: {
+        roomId: getPriceByMonth.roomId,
+        status: BookingStatus.CONFIRMED,
+        checkinDate: LessThanOrEqual(endDate),
+        checkoutDate: MoreThan(startDate)
+      }
+    });
 
-      const confirmedBookings = await this.bookingRepository.find({
-          where: {
-              roomId: getPriceByMonth.roomId,
-              status: BookingStatus.CONFIRMED,
-              checkinDate: LessThanOrEqual(endDate),
-              checkoutDate: MoreThan(startDate)
-          }
-      });
+    const isDateBooked = (checkDate: Date): boolean => {
+      for (const booking of confirmedBookings) {
+        const checkin = new Date(booking.checkinDate);
+        const checkout = new Date(booking.checkoutDate);
 
-      const isDateBooked = (checkDate: Date): boolean => {
-        for (const booking of confirmedBookings) {
-            const checkin = new Date(booking.checkinDate);
-            const checkout = new Date(booking.checkoutDate);
-            
-            if (checkDate >= checkin && checkDate < checkout) {
-                return true;
-            }
+        if (checkDate >= checkin && checkDate < checkout) {
+          return true;
         }
-        return false;
-     };
+      }
+      return false;
+    };
 
-      return {
-          message: 'ดึงข้อมูลราคาสำเร็จ',
-          prices: prices.length === 0 ? [] : prices.map(price => ({
-              date: price.date,
-              price: Number(price.price),
-              status: isDateBooked(new Date(price.date)) ? RoomStatus.UNAVAILABLE : RoomStatus.AVAILABLE
-          }))
-      };
+    return {
+      message: 'ดึงข้อมูลราคาสำเร็จ',
+      prices: prices.length === 0 ? [] : prices.map(price => ({
+        date: price.date,
+        price: Number(price.price),
+        status: isDateBooked(new Date(price.date)) ? RoomStatus.UNAVAILABLE : RoomStatus.AVAILABLE
+      }))
+    };
   }
 
 

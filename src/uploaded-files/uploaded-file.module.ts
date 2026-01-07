@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UploadedFileService } from './uploaded-file.service';
-import { UploadedFileEntity } from './entities/uploaded-file.entity';
+import { UploadedFileEntity } from '@/entities/uploaded-file.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([UploadedFileEntity])],

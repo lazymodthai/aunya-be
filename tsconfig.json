@@ -2,20 +2,38 @@
   "compilerOptions": {
     "module": "commonjs",
     "declaration": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "target": "ES2023",
+    "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
-    "strictNullChecks": true,
-    "forceConsistentCasingInFileNames": true,
+    "strictNullChecks": false,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "forceConsistentCasingInFileNames": false,
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@src/*": ["src/*"],
+      "@/utils/*": ["utils/*"],
+      "@/config/*": ["config/*"],
+      "@/constants/*": ["constants/*"],
+      "@/decorator/*": ["decorator/*"],
+      "@/models/*": ["models/*"],
+      "@/databases/*": ["databases/*"],
+      "@/middlewares/*": ["middlewares/*"],
+      "@/interfaces/*": ["interfaces/*"],
+      "@/entities/*": ["entities/*"],
+      "@/message/*": ["message/*"],
+      "@/firebase/*": ["src/firebase/*"],
+      "@/device-tokens/*": ["src/device-tokens/*"],
+      "@/lazymodthai/*": ["src/lazymodthai/*"]
+    }
   }
 }

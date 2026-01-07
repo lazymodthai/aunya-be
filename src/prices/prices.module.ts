@@ -5,9 +5,9 @@ import { ConfigModule } from '@nestjs/config';
 
 import { PricesService } from './prices.service';
 import { PricesController } from './prices.controller';
-import { PriceCalendarEntity } from './entities/price-calendar.entity';
-import { DiscountCodeEntity } from './entities/discount-codes.entity';
-import { BookingEntity } from '../booking/entities/booking.entity';
+import { PriceCalendarEntity } from '@/entities/price-calendar.entity';
+import { DiscountCodeEntity } from '@/entities/discount-codes.entity';
+import { BookingEntity } from '@/entities/booking.entity';
 
 @Module({
   imports: [
@@ -19,4 +19,4 @@ import { BookingEntity } from '../booking/entities/booking.entity';
   providers: [PricesService],
   exports: [PricesService],
 })
-export class PricesModule {}
+export class PricesModule { }

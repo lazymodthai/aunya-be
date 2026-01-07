@@ -1,4 +1,4 @@
-import { Controller, Post, UploadedFile, UseInterceptors, BadRequestException, Get, Param, Delete, Query, Res, HttpStatus, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, UploadedFile, UseInterceptors, BadRequestException, Get, Param, Delete, Query, Res, HttpStatus, UseGuards, Request } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ObjectStorageService } from './object-storage.service';
 import { GetFileDto } from './dto/get-file.dto';
@@ -37,7 +37,7 @@ export class ObjectStorageController {
     }
 
     const key = `${invoiceNumber}.${file.originalname.split('.').pop()}`;
-    const s3Response = await this.objectStorageService.uploadFile(file, key, uploaderId, invoiceNumber);
+    await this.objectStorageService.uploadFile(file, key, uploaderId, invoiceNumber);
     const uploadedFile = await this.uploadedFileService.findOneByS3Key(key);
     if (!uploadedFile) {
       throw new BadRequestException('Failed to retrieve uploaded file metadata.');

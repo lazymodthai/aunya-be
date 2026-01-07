@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { RegisterDto } from './dto/register.dto';
-import { UserEntity } from './entities/users.entity';
+import { UserEntity } from '@/entities/users.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
@@ -10,20 +10,20 @@ export class UsersService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly usersRepository: Repository<UserEntity>,
-  ) {}
+  ) { }
 
 
   async healthCheck(): Promise<string> {
     return 'Users service is up and running!';
   }
-  
+
   async register(registerDto: RegisterDto): Promise<UserEntity> {
     const { email, password, firstName, lastName, phoneNumber } = registerDto;
 
     try {
       // ตรวจสอบว่า email ซ้ำหรือไม่
-      const existingUser = await this.usersRepository.findOne({ 
-        where: { email } 
+      const existingUser = await this.usersRepository.findOne({
+        where: { email }
       });
 
       if (existingUser) {
