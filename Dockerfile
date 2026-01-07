@@ -11,16 +11,19 @@ RUN corepack enable
 COPY package*.json ./
 COPY .yarnrc.yml ./
 COPY .yarn ./.yarn
+COPY yarn.lock ./
+
+# Disable global cache for Docker build
+ENV YARN_ENABLE_GLOBAL_CACHE=false
 
 # Install dependencies
-# Corepack will now automatically use the correct yarn version (4.8.1)
-RUN yarn install
+RUN yarn install --immutable
 
 # Copy source code
 COPY . .
 
-# Build the application
-RUN yarn build
+# Build the application using npx to run nest directly
+RUN yarn run build
 
 # Expose port
 EXPOSE 3005
