@@ -10,6 +10,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BookingModule } from './booking/booking.module';
 import { PricesModule } from './prices/prices.module';
 import { LoggerMiddleware } from './middlewares/logger.middleware';
+import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { LoggerMiddleware } from './middlewares/logger.middleware';
     UploadedFileModule,
     BookingModule,
     PricesModule,
+    FilesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
