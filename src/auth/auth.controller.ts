@@ -1,9 +1,8 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Request, UseGuards } from '@nestjs/common';
-import { 
-  ApiTags, 
-  ApiOperation, 
-  ApiResponse, 
-  ApiBody, 
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBody,
   ApiBearerAuth,
   ApiOkResponse,
   ApiUnauthorizedResponse,
@@ -16,12 +15,12 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Get()
-  @ApiOperation({ 
-    summary: 'Health Check', 
-    description: 'Check the status of Auth Service' 
+  @ApiOperation({
+    summary: 'Health Check',
+    description: 'Check the status of Auth Service'
   })
   @ApiOkResponse({
     description: 'Health check successful',
@@ -39,11 +38,11 @@ export class AuthController {
 
   @Post('/login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
-    summary: 'User Login', 
-    description: 'Authenticate user with email and password' 
+  @ApiOperation({
+    summary: 'User Login',
+    description: 'Authenticate user with email and password'
   })
-  @ApiBody({ 
+  @ApiBody({
     type: LoginDto,
     description: 'Login credentials'
   })
@@ -98,9 +97,9 @@ export class AuthController {
   @Get('/profile')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ 
-    summary: 'Get User Profile', 
-    description: 'Retrieve profile information of authenticated user' 
+  @ApiOperation({
+    summary: 'Get User Profile',
+    description: 'Retrieve profile information of authenticated user'
   })
   @ApiOkResponse({
     description: 'Profile retrieved successfully',

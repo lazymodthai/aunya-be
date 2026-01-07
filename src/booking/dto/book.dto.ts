@@ -1,4 +1,4 @@
-import { IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsDateString, IsNumber, IsOptional, IsString } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
 
@@ -20,7 +20,7 @@ export class BookDto {
   })
   @IsNumber()
   guestNumber: number;
-  
+
   @ApiProperty({
     type: Number,
   })

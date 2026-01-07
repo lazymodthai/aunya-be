@@ -9,26 +9,29 @@ import { UploadedFileModule } from './uploaded-files/uploaded-file.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BookingModule } from './booking/booking.module';
 import { PricesModule } from './prices/prices.module';
-import { LoggerMiddleware } from './middlewares/logger.middleware';
+import { LoggerMiddleware } from '@/middlewares/logger.middleware';
 import { FilesModule } from './files/files.module';
+import * as path from 'path';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true, // Make ConfigModule available globally
+      envFilePath: path.join(process.cwd(), `.env.${process.env.NODE_ENV || 'development'}`),
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        name: "default", // Add a connection name to avoid the crypto issue
-        type: configService.get<string>("DB_TYPE") as any,
-        host: configService.get<string>("DB_HOST"),
-        port: configService.get<number>("DB_PORT"),
-        username: configService.get<string>("DB_USERNAME"),
-        password: configService.get<string>("DB_PASSWORD"),
-        database: configService.get<string>("DB_NAME"),
+        name: "default",
+        type: 'postgres' as const,
+        host: configService.get<string>("DB_HOST") || 'localhost',
+        port: configService.get<number>("DB_PORT") || 5432,
+        username: configService.get<string>("DB_USERNAME") || 'postgres',
+        password: configService.get<string>("DB_PASSWORD") || '',
+        database: configService.get<string>("DB_NAME") || '',
         entities: [__dirname + "/**/*.entity{.ts,.js}"],
-        synchronize: true, // Only for development
+        autoLoadEntities: true,
+        synchronize: configService.get<boolean>("DB_SYNCHRONIZE") || false,
       }),
       inject: [ConfigService],
     }),

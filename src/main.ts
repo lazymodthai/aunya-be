@@ -1,3 +1,4 @@
+import { APP } from '@/config/app-config';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
@@ -13,7 +14,6 @@ async function bootstrap() {
     .setTitle('Aunya API Docs')
     .setDescription('ว่างก็ไปทำงาน')
     .setVersion('1.0')
-    // .addTag('Aunya API')
     .addBearerAuth(
       {
         type: 'http',
@@ -25,6 +25,7 @@ async function bootstrap() {
       },
       'JWT-auth',
     )
+    .addServer(`http://localhost:${APP.port}`, 'Local Development')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -43,6 +44,6 @@ async function bootstrap() {
     transform: true,
   }));
 
-  await app.listen(process.env.PORT ?? 3090);
+  await app.listen(APP.port);
 }
 bootstrap();

@@ -1,12 +1,12 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, InternalServerErrorException, NotFoundException, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, InternalServerErrorException, NotFoundException, Post, Query } from '@nestjs/common';
 import { BookingService } from './booking.service';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { BookDto } from './dto/book.dto';
 
 @ApiTags("Booking")
 @Controller("booking")
 export class BookingController {
-  constructor(private readonly bookingService: BookingService) {}
+  constructor(private readonly bookingService: BookingService) { }
 
   @Post("/book")
   // @UseGuards(JwtAuthGuard)
@@ -67,11 +67,11 @@ export class BookingController {
 
     try {
       const booking = await this.bookingService.getBookedRoom(refCode);
-      
+
       if (!booking) {
         throw new NotFoundException(`Booking with refCode '${refCode}' not found`);
       }
-      
+
       return {
         success: true,
         data: booking,
@@ -104,11 +104,11 @@ export class BookingController {
 
     try {
       const bookings = await this.bookingService.getBookedRoomsByPhoneNumber(phoneNumber);
-      
+
       if (!bookings || !bookings.length) {
         throw new NotFoundException(`Booking with phone number '${phoneNumber}' not found`);
       }
-      
+
       return {
         success: true,
         data: bookings,

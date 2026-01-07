@@ -1,8 +1,7 @@
-import { UserEntity } from 'src/users/entities/users.entity';
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { Optional } from '@nestjs/common';
-import { BookingStatus } from 'src/booking/enums/booking.enum';
-import { RoomEntity } from 'src/booking/entities/rooms.entity';
+import { BookingStatus } from 'constants/booking.enum';
+import { RoomEntity } from './rooms.entity';
 
 @Entity('booking')
 @Index(['refCode'])
@@ -55,5 +54,5 @@ export class BookingEntity {
 
   @ManyToOne(() => RoomEntity, room => room.bookings, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'roomId' })
-  room: RoomEntity;  
+  room: RoomEntity;
 }

@@ -1,6 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { DayType } from "../../booking/enums/booking.enum";
-import { RoomEntity } from "../../booking/entities/rooms.entity";
+import { DayType } from "@/constants/booking.enum";
+import { RoomEntity } from "./rooms.entity";
 
 @Entity('price_calendar')
 export class PriceCalendarEntity {
@@ -16,9 +16,9 @@ export class PriceCalendarEntity {
   @Column({ type: 'enum', enum: DayType, default: DayType.WEEKDAY })
   dayType: DayType;
 
-  @Column({ 
-    type: 'varchar', 
-    length: 255, 
+  @Column({
+    type: 'varchar',
+    length: 255,
     nullable: true,
   })
   description: string | null;
