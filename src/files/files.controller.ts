@@ -30,6 +30,10 @@ export class FilesController {
           format: "binary",
           description: "ไฟล์ที่ต้องการอัปโหลด",
         },
+        bookingId: {
+          type: "string",
+          description: "roomId",
+        },
         userTell: {
           type: "string",
           description: "เบอร์โทรศัพท์ผู้ใช้",
@@ -39,30 +43,25 @@ export class FilesController {
           description: "ประเภท slip",
         },
       },
-      required: ["file", "userTell", "typeslip"],
+      required: ["file", "userTell", "typeslip", "bookingId"],
     },
   })
-  @Post("upload/:id")
+  @Post("upload")
   @UseInterceptors(FileInterceptor("file"))
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: FileUpload,
-    @Param("id") id: string
   ) {
     // Validation
     if (!file) {
       throw new Error("No file uploaded");
     }
-    if (!id) {
-      throw new Error("No id uploaded");
-    }
 
     // Prepare file info
     const fileExt = file.originalname.split(".").pop();
-    const fileName = `${id}.${fileExt}`;
+    const fileName = `${body.bookingId}.${fileExt}`;
     const s3Key = `uploads/${Date.now()}-${fileName}`;
 
-    // Upload to S3
     try {
       await nipaS3.send(
         new PutObjectCommand({
@@ -82,11 +81,11 @@ export class FilesController {
 
     // Save to database
     const savedFile = await this.filesService.createFileRecord({
-      bookingId: id,
+      bookingId: body.bookingId,
       userTell: body.userTell,
       typeslip: body.typeslip,
-      fileName: file.originalname,
-      fileType: file.mimetype,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
       fileSize: file.size,
       s3Key: s3Key,
       fileUrl: fileUrl,
@@ -102,9 +101,9 @@ export class FilesController {
     const files = await this.filesService.getAllFiles();
     return files.map((file) => ({
       id: file.id,
-      fileName: file.fileName,
+      originalName: file.originalName,
       fileSize: file.fileSize,
-      fileType: file.fileType,
+      mimeType: file.mimeType,
       bookingId: file.bookingId,
       userTell: file.userTell,
       typeslip: file.typeslip,
@@ -122,9 +121,9 @@ export class FilesController {
     }
     return {
       id: file.id,
-      fileName: file.fileName,
+      originalName: file.originalName,
       fileSize: file.fileSize,
-      fileType: file.fileType,
+      mimeType: file.mimeType,
       bookingId: file.bookingId,
       userTell: file.userTell,
       typeslip: file.typeslip,

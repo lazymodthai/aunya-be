@@ -11,4 +11,9 @@ export class FileUpload {
   @IsString()
   @IsNotEmpty()
   typeslip: string;
+
+  @ApiProperty({ description: 'ID จอง' })
+  @IsString()
+  @IsNotEmpty()
+  bookingId: string;
 }

@@ -31,7 +31,7 @@ import * as path from 'path';
         database: configService.get<string>("DB_NAME") || '',
         entities: [__dirname + "/**/*.entity{.ts,.js}"],
         autoLoadEntities: true,
-        synchronize: configService.get<boolean>("DB_SYNCHRONIZE") || false,
+        synchronize:  true,
       }),
       inject: [ConfigService],
     }),

@@ -18,7 +18,7 @@ export class FileEntity {
   userTell: string;
 
   @Column()
-  fileName: string;
+  originalName: string;
 
   @Column({ nullable: true })
   fileUrl: string;
@@ -27,7 +27,7 @@ export class FileEntity {
   s3Key: string;
 
   @Column()
-  fileType: string;
+  mimeType: string;
 
   @Column()
   fileSize: number;

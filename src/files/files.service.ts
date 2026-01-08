@@ -14,8 +14,8 @@ export class FilesService {
     bookingId: string;
     userTell: string;
     typeslip: string;
-    fileName: string;
-    fileType: string;
+    originalName: string;
+    mimeType: string;
     fileSize: number;
     s3Key: string;
     fileUrl: string;
