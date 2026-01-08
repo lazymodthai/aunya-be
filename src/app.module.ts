@@ -11,6 +11,7 @@ import { BookingModule } from './booking/booking.module';
 import { PricesModule } from './prices/prices.module';
 import { LoggerMiddleware } from '@/middlewares/logger.middleware';
 import { FilesModule } from './files/files.module';
+import { CheckSlipModule } from './check-slip/check-slip.module';
 import * as path from 'path';
 
 @Module({
@@ -42,6 +43,7 @@ import * as path from 'path';
     BookingModule,
     PricesModule,
     FilesModule,
+    CheckSlipModule,
   ],
   controllers: [AppController],
   providers: [AppService],

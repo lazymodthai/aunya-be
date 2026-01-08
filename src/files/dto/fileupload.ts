@@ -15,5 +15,5 @@ export class FileUpload {
   @ApiProperty({ description: 'ID จอง' })
   @IsString()
   @IsNotEmpty()
-  bookingId: string;
+  roomId: string;
 }

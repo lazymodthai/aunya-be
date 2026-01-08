@@ -12,7 +12,7 @@ export class FileEntity {
   id: string;
 
   @Column()
-  bookingId: string;
+  roomId: string;
 
   @Column()
   userTell: string;

@@ -16,10 +16,18 @@ import { ApiBody, ApiConsumes } from "@nestjs/swagger";
 import { Response } from "express";
 import { nipaS3 } from "./nipa";
 import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import jsQR from "jsqr";
+import { Jimp } from "jimp";
+import axios from "axios";
+import { SLIP_VERIFICATION_API } from "config/app-config";
+import { CheckSlipService } from "@src/check-slip/check-slip.service";
 
 @Controller("files")
 export class FilesController {
-  constructor(private readonly filesService: FilesService) {}
+  constructor(
+    private readonly filesService: FilesService,
+    private readonly checkSlipService: CheckSlipService
+  ) {}
   @ApiConsumes("multipart/form-data")
   @ApiBody({
     schema: {
@@ -30,7 +38,7 @@ export class FilesController {
           format: "binary",
           description: "ไฟล์ที่ต้องการอัปโหลด",
         },
-        bookingId: {
+        roomId: {
           type: "string",
           description: "roomId",
         },
@@ -43,23 +51,20 @@ export class FilesController {
           description: "ประเภท slip",
         },
       },
-      required: ["file", "userTell", "typeslip", "bookingId"],
+      required: ["file", "userTell", "typeslip", "roomId"],
     },
   })
   @Post("upload")
   @UseInterceptors(FileInterceptor("file"))
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
-    @Body() body: FileUpload,
+    @Body() body: FileUpload
   ) {
-    // Validation
     if (!file) {
       throw new Error("No file uploaded");
     }
-
-    // Prepare file info
     const fileExt = file.originalname.split(".").pop();
-    const fileName = `${body.bookingId}.${fileExt}`;
+    const fileName = `${body.roomId}.${fileExt}`;
     const s3Key = `uploads/${Date.now()}-${fileName}`;
 
     try {
@@ -81,7 +86,7 @@ export class FilesController {
 
     // Save to database
     const savedFile = await this.filesService.createFileRecord({
-      bookingId: body.bookingId,
+      roomId: body.roomId,
       userTell: body.userTell,
       typeslip: body.typeslip,
       originalName: file.originalname,
@@ -91,11 +96,65 @@ export class FilesController {
       fileUrl: fileUrl,
     });
 
+    let qrData = null;
+    let slipVerificationResult = null;
+
+    try {
+      // ดึงรูปภาพจาก URL
+      const imageResponse = await axios.get(fileUrl, {
+        responseType: "arraybuffer",
+      });
+      const image = await Jimp.read(Buffer.from(imageResponse.data));
+      const { width, height, data } = image.bitmap;
+      const qrCode = jsQR(new Uint8ClampedArray(data), width, height);
+      console.log("QR Code data:", qrCode);
+      if (qrCode) {
+        qrData = qrCode.data;
+        // Send QR data to slip verification API
+        if (SLIP_VERIFICATION_API.url && SLIP_VERIFICATION_API.secretKey) {
+          try {
+            const response = await axios.post(
+              `${SLIP_VERIFICATION_API.url}`,
+              {
+                payload: {
+                  qrCode: qrData,
+                },
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${SLIP_VERIFICATION_API.secretKey}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            slipVerificationResult = response.data;
+          } catch (apiError) {}
+        } else {
+        }
+      } else {
+      }
+    } catch (error) {}
+
+    if (slipVerificationResult) {
+      await this.checkSlipService.SaveSlip({
+        referenceId: slipVerificationResult.data.referenceId,
+        decode: slipVerificationResult.data.decode,
+        transRef: slipVerificationResult.data.transRef,
+        dateTime: slipVerificationResult.data.dateTime,
+        amount: slipVerificationResult.data.amount,
+        ref1: slipVerificationResult.data.ref1,
+        ref2: slipVerificationResult.data.ref2,
+        ref3: slipVerificationResult.data.ref3,
+        receiver: slipVerificationResult.data.receiver || null,
+        sender: slipVerificationResult.data.sender || null,
+        typeslip: savedFile.typeslip,
+      });
+    }
     return {
       id: savedFile.id,
+      slipVerification: slipVerificationResult,
     };
   }
-
   @Get("getAll")
   async findAll() {
     const files = await this.filesService.getAllFiles();
@@ -104,7 +163,7 @@ export class FilesController {
       originalName: file.originalName,
       fileSize: file.fileSize,
       mimeType: file.mimeType,
-      bookingId: file.bookingId,
+      roomId: file.roomId,
       userTell: file.userTell,
       typeslip: file.typeslip,
       s3Key: file.s3Key,
@@ -124,7 +183,7 @@ export class FilesController {
       originalName: file.originalName,
       fileSize: file.fileSize,
       mimeType: file.mimeType,
-      bookingId: file.bookingId,
+      roomId: file.roomId,
       userTell: file.userTell,
       typeslip: file.typeslip,
       s3Key: file.s3Key,

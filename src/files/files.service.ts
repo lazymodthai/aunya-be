@@ -11,7 +11,7 @@ export class FilesService {
   ) {}
 
   async createFileRecord(data: {
-    bookingId: string;
+    roomId: string;
     userTell: string;
     typeslip: string;
     originalName: string;
@@ -35,4 +35,8 @@ export class FilesService {
   async deleteFileById(id: string) {
     await this.filesRepository.delete(id);
   }
+  
+
+
+
 }
