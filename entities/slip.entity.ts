@@ -42,6 +42,7 @@ export class SlipEntity {
   @Column({ type: "varchar", length: 25 })
   typeslip: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({type:"timestamp with time zone",default:"now()"})
+
   createdAt: Date;
 }

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsObject, IsOptional, IsString } from "class-validator";
+import { IsDate, IsNotEmpty, IsObject, IsOptional, IsString } from "class-validator";
 
 export class SaveSlipDto {
   @IsString()
@@ -44,4 +44,8 @@ export class SaveSlipDto {
   @IsString()
   @IsNotEmpty()
   typeslip: string;
+
+  @IsDate()
+  @IsOptional()
+  createdAt?: Date;
 }

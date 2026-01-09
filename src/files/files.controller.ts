@@ -198,6 +198,7 @@ export class FilesController {
         receiver: slipVerificationResult.data.receiver || null,
         sender: slipVerificationResult.data.sender || null,
         typeslip: savedFile.typeslip,
+        createdAt: new Date(),
       });
     } else {
       await cleanupFile();
