@@ -1,12 +1,24 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, InternalServerErrorException, NotFoundException, Post, Query } from '@nestjs/common';
-import { BookingService } from './booking.service';
-import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { BookDto } from './dto/book.dto';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  InternalServerErrorException,
+  NotFoundException,
+  Post,
+  Query,
+} from "@nestjs/common";
+import { BookingService } from "./booking.service";
+import { ApiBody, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
+import { BookDto } from "./dto/book.dto";
+import { BookingStatus } from "@/constants/booking.enum";
 
 @ApiTags("Booking")
 @Controller("booking")
 export class BookingController {
-  constructor(private readonly bookingService: BookingService) { }
+  constructor(private readonly bookingService: BookingService) {}
 
   @Post("/book")
   // @UseGuards(JwtAuthGuard)
@@ -38,6 +50,24 @@ export class BookingController {
     return await this.bookingService.getAllDate();
   }
 
+  @Get("/booked/all")
+  @ApiOperation({
+    summary: "get all",
+    description: "get all booked rooms",
+  })
+  @ApiQuery({
+    name: "status",
+    description: "Filter by booking status",
+    required: false,
+    enum: BookingStatus,
+  })
+  @HttpCode(HttpStatus.OK)
+  async getAllBookedRooms(@Query() query: { status?: BookingStatus }) {
+    return await this.bookingService.getAllBookRoomsNoconditon({
+      status: query.status,
+    });
+  }
+
   @Get("/booked")
   @ApiOperation({
     summary: "Get booked rooms",
@@ -54,34 +84,39 @@ export class BookingController {
     description: "Retrieve booking information using reference code",
   })
   @ApiQuery({
-    name: 'refCode',
-    description: 'Booking reference code',
-    type: 'string',
-    required: true
+    name: "refCode",
+    description: "Booking reference code",
+    type: "string",
+    required: true,
   })
   @HttpCode(HttpStatus.OK)
-  async getBookedRoom(@Query('refCode') refCode: string) {
+  async getBookedRoom(@Query("refCode") refCode: string) {
     if (!refCode) {
-      throw new BadRequestException('refCode is required');
+      throw new BadRequestException("refCode is required");
     }
 
     try {
       const booking = await this.bookingService.getBookedRoom(refCode);
 
       if (!booking) {
-        throw new NotFoundException(`Booking with refCode '${refCode}' not found`);
+        throw new NotFoundException(
+          `Booking with refCode '${refCode}' not found`
+        );
       }
 
       return {
         success: true,
         data: booking,
-        message: 'Booking retrieved successfully'
+        message: "Booking retrieved successfully",
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      throw new InternalServerErrorException('Failed to retrieve booking');
+      throw new InternalServerErrorException("Failed to retrieve booking");
     }
   }
 
@@ -91,34 +126,40 @@ export class BookingController {
     description: "Retrieve booking information using phone number",
   })
   @ApiQuery({
-    name: 'phoneNumber',
-    description: 'Booking phone number',
-    type: 'string',
-    required: true
+    name: "phoneNumber",
+    description: "Booking phone number",
+    type: "string",
+    required: true,
   })
   @HttpCode(HttpStatus.OK)
-  async getBookedRoomByPhoneNumber(@Query('phoneNumber') phoneNumber: string) {
+  async getBookedRoomByPhoneNumber(@Query("phoneNumber") phoneNumber: string) {
     if (!phoneNumber) {
-      throw new BadRequestException('Phone number is required');
+      throw new BadRequestException("Phone number is required");
     }
 
     try {
-      const bookings = await this.bookingService.getBookedRoomsByPhoneNumber(phoneNumber);
+      const bookings =
+        await this.bookingService.getBookedRoomsByPhoneNumber(phoneNumber);
 
       if (!bookings || !bookings.length) {
-        throw new NotFoundException(`Booking with phone number '${phoneNumber}' not found`);
+        throw new NotFoundException(
+          `Booking with phone number '${phoneNumber}' not found`
+        );
       }
 
       return {
         success: true,
         data: bookings,
-        message: 'Booking retrieved successfully'
+        message: "Booking retrieved successfully",
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      throw new InternalServerErrorException('Failed to retrieve booking');
+      throw new InternalServerErrorException("Failed to retrieve booking");
     }
   }
 }

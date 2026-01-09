@@ -1,10 +1,14 @@
-import { ConflictException, Injectable, InternalServerErrorException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Between, LessThan, MoreThan, Repository } from 'typeorm';
-import { BookDto } from './dto/book.dto';
-import { BookingStatus } from '@/constants/booking.enum';
-import { BookingEntity } from '@/entities/booking.entity';
-import { PriceCalendarEntity } from 'entities/price-calendar.entity';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Between, LessThan, MoreThan, Repository } from "typeorm";
+import { BookDto } from "./dto/book.dto";
+import { BookingStatus } from "@/constants/booking.enum";
+import { BookingEntity } from "@/entities/booking.entity";
+import { PriceCalendarEntity } from "entities/price-calendar.entity";
 
 @Injectable()
 export class BookingService {
@@ -13,7 +17,7 @@ export class BookingService {
     private readonly bookingRepository: Repository<BookingEntity>,
     @InjectRepository(PriceCalendarEntity)
     private readonly pricesRepository: Repository<PriceCalendarEntity>
-  ) { }
+  ) {}
 
   private generateRefCode(): string {
     const now = new Date();
@@ -28,7 +32,11 @@ export class BookingService {
     return `AY${year}${month}${day}${randomNum}`;
   }
 
-  private async checkAvailableRoom(checkinDate: Date, checkoutDate: Date, roomId: string): Promise<boolean> {
+  private async checkAvailableRoom(
+    checkinDate: Date,
+    checkoutDate: Date,
+    roomId: string
+  ): Promise<boolean> {
     if (!checkinDate || !checkoutDate || !roomId) {
       return true;
     }
@@ -45,11 +53,18 @@ export class BookingService {
     return !!conflictingBooking;
   }
 
-  private async getPrices(checkinDate: Date, checkoutDate: Date, roomId: string): Promise<{ date: Date, price: number }[]> {
+  private async getPrices(
+    checkinDate: Date,
+    checkoutDate: Date,
+    roomId: string
+  ): Promise<{ date: Date; price: number }[]> {
     const prices = await this.pricesRepository.find({
       where: {
         roomId: roomId,
-        date: Between(new Date(checkinDate), new Date(new Date(checkoutDate).getTime() - 24 * 60 * 60 * 1000)),
+        date: Between(
+          new Date(checkinDate),
+          new Date(new Date(checkoutDate).getTime() - 24 * 60 * 60 * 1000)
+        ),
       },
     });
 
@@ -62,10 +77,16 @@ export class BookingService {
   async createBooking(bookDto: BookDto) {
     const refCode = this.generateRefCode();
 
-    const isUnavailable = await this.checkAvailableRoom(bookDto.checkinDate, bookDto.checkoutDate, bookDto.roomId);
+    const isUnavailable = await this.checkAvailableRoom(
+      bookDto.checkinDate,
+      bookDto.checkoutDate,
+      bookDto.roomId
+    );
 
     if (isUnavailable) {
-      throw new ConflictException(`This room is unavailable for the selected dates.`);
+      throw new ConflictException(
+        `This room is unavailable for the selected dates.`
+      );
     }
 
     const booking = this.bookingRepository.create({
@@ -82,12 +103,16 @@ export class BookingService {
     });
 
     const savedBooking = await this.bookingRepository.save(booking);
-    const prices = await this.getPrices(bookDto.checkinDate, bookDto.checkoutDate, bookDto.roomId);
+    const prices = await this.getPrices(
+      bookDto.checkinDate,
+      bookDto.checkoutDate,
+      bookDto.roomId
+    );
 
     return {
       refCode: savedBooking.refCode,
       id: savedBooking.id,
-      prices: prices
+      prices: prices,
     };
   }
 
@@ -97,6 +122,17 @@ export class BookingService {
         status: BookingStatus.CONFIRMED,
       },
     });
+  }
+
+  async getAllBookRoomsNoconditon(query?: { status?: BookingStatus }) {
+    if (query?.status) {
+      return await this.bookingRepository.find({
+        where: {
+          status: query.status,
+        },
+      });
+    }
+    return await this.bookingRepository.find();
   }
 
   async getBookedRoom(refCode: string): Promise<BookingEntity | null> {
@@ -114,7 +150,9 @@ export class BookingService {
     }
   }
 
-  async getBookedRoomsByPhoneNumber(phoneNumber: string): Promise<BookingEntity[]> {
+  async getBookedRoomsByPhoneNumber(
+    phoneNumber: string
+  ): Promise<BookingEntity[]> {
     try {
       const bookings = await this.bookingRepository.find({
         where: {
@@ -155,5 +193,4 @@ export class BookingService {
         });
       });
   }
-
 }

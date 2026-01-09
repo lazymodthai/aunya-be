@@ -8,6 +8,8 @@ import {
   Res,
   UploadedFile,
   UseInterceptors,
+  HttpException,
+  HttpStatus,
 } from "@nestjs/common";
 import { FilesService } from "./files.service";
 import { FileInterceptor } from "@nestjs/platform-express";
@@ -61,8 +63,9 @@ export class FilesController {
     @Body() body: FileUpload
   ) {
     if (!file) {
-      throw new Error("No file uploaded");
+      throw new HttpException("ไม่พบไฟล์ที่อัปโหลด", HttpStatus.BAD_REQUEST);
     }
+
     const fileExt = file.originalname.split(".").pop();
     const fileName = `${body.roomId}.${fileExt}`;
     const s3Key = `uploads/${Date.now()}-${fileName}`;
@@ -78,7 +81,10 @@ export class FilesController {
         })
       );
     } catch (error) {
-      throw error;
+      throw new HttpException(
+        "อัปโหลดไฟล์ไปยัง S3 ล้มเหลว",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
 
     // Generate file URL
@@ -99,6 +105,23 @@ export class FilesController {
     let qrData = null;
     let slipVerificationResult = null;
 
+    // Helper function to cleanup uploaded file if validation fails
+    const cleanupFile = async () => {
+      try {
+        // Delete from S3
+        await nipaS3.send(
+          new DeleteObjectCommand({
+            Bucket: process.env.NIPA_CLOUD_BUCKET_NAME,
+            Key: s3Key,
+          })
+        );
+        // Delete from database
+        await this.filesService.deleteFileById(savedFile.id);
+      } catch (cleanupError) {
+        console.error("Error during file cleanup:", cleanupError);
+      }
+    };
+
     try {
       // ดึงรูปภาพจาก URL
       const imageResponse = await axios.get(fileUrl, {
@@ -107,35 +130,62 @@ export class FilesController {
       const image = await Jimp.read(Buffer.from(imageResponse.data));
       const { width, height, data } = image.bitmap;
       const qrCode = jsQR(new Uint8ClampedArray(data), width, height);
-      console.log("QR Code data:", qrCode);
-      if (qrCode) {
-        qrData = qrCode.data;
-        // Send QR data to slip verification API
-        if (SLIP_VERIFICATION_API.url && SLIP_VERIFICATION_API.secretKey) {
-          try {
-            const response = await axios.post(
-              `${SLIP_VERIFICATION_API.url}`,
-              {
-                payload: {
-                  qrCode: qrData,
-                },
+
+      if (!qrCode) {
+        // ไม่พบ QR code - ลบไฟล์และแจ้งข้อผิดพลาด
+        await cleanupFile();
+        throw new HttpException(
+          "notfound  QR Code in file should upload picture is correct",
+          HttpStatus.BAD_REQUEST
+        );
+      }
+      qrData = qrCode.data;
+      if (SLIP_VERIFICATION_API.url && SLIP_VERIFICATION_API.secretKey) {
+        try {
+          const response = await axios.post(
+            `${SLIP_VERIFICATION_API.url}`,
+            {
+              payload: {
+                qrCode: qrData,
               },
-              {
-                headers: {
-                  Authorization: `Bearer ${SLIP_VERIFICATION_API.secretKey}`,
-                  "Content-Type": "application/json",
-                },
-              }
-            );
-            slipVerificationResult = response.data;
-          } catch (apiError) {}
-        } else {
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${SLIP_VERIFICATION_API.secretKey}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          slipVerificationResult = response.data;
+        } catch (apiError) {
+          // API verification failed - ลบไฟล์และแจ้งข้อผิดพลาด
+          await cleanupFile();
+          throw new HttpException(
+            "การตรวจสอบสลีปล้มเหลว QR Code ไม่ถูกต้องหรือไม่ใช่สลีปการโอนเงิน",
+            HttpStatus.BAD_REQUEST
+          );
         }
       } else {
+        await cleanupFile();
+        throw new HttpException(
+          "ไม่สามารถตรวจสอบสลีปได้ เนื่องจากไม่มีการกำหนดค่า API",
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
       }
-    } catch (error) {}
+    } catch (error) {
+      // Re-throw HttpException as-is
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      // For other errors, cleanup and throw
+      await cleanupFile();
+      throw new HttpException(
+        "ไม่สามารถประมวลผลภาพได้ กรุณาตรวจสอบว่าเป็นไฟล์ภาพที่ถูกต้อง",
+        HttpStatus.BAD_REQUEST
+      );
+    }
 
-    if (slipVerificationResult) {
+    if (slipVerificationResult && slipVerificationResult.data) {
       await this.checkSlipService.SaveSlip({
         referenceId: slipVerificationResult.data.referenceId,
         decode: slipVerificationResult.data.decode,
@@ -149,7 +199,14 @@ export class FilesController {
         sender: slipVerificationResult.data.sender || null,
         typeslip: savedFile.typeslip,
       });
+    } else {
+      await cleanupFile();
+      throw new HttpException(
+        "ไม่สามารถยืนยันข้อมูลสลีปได้",
+        HttpStatus.BAD_REQUEST
+      );
     }
+
     return {
       id: savedFile.id,
       slipVerification: slipVerificationResult,
