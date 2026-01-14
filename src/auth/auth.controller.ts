@@ -118,15 +118,6 @@ export class AuthController {
       type: 'object',
       properties: {
         message: { type: 'string', example: 'Login successful' },
-        access_token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
-        user: {
-          type: 'object',
-          properties: {
-            id: { type: 'number', example: 1 },
-            email: { type: 'string', example: 'user@example.com' },
-            name: { type: 'string', example: 'John Doe' },
-          }
-        }
       }
     }
   })
@@ -180,7 +171,6 @@ export class AuthController {
 
     return {
       message: 'Login successful',
-      ...result,
     };
   }
 
@@ -196,7 +186,6 @@ export class AuthController {
       type: 'object',
       properties: {
         message: { type: 'string', example: 'Token refreshed successfully' },
-        access_token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
       }
     }
   })
@@ -239,7 +228,6 @@ export class AuthController {
 
     return {
       message: 'Token refreshed successfully',
-      access_token: result.access_token,
     };
   }
 
