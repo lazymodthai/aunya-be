@@ -13,6 +13,7 @@ import {
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { UserOnly } from './decorators';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -30,12 +31,17 @@ export class AuthController {
       type: 'object',
       properties: {
         status: { type: 'string', example: 'OK' },
+        message: { type: 'string', example: 'Auth service is up and running!' },
         timestamp: { type: 'string', example: '2024-01-01T00:00:00.000Z' }
       }
     }
   })
-  async healthCheck() {
-    return this.authService.healthCheck();
+  healthCheck() {
+    return {
+      status: 'OK',
+      message: 'Auth service is up and running!',
+      timestamp: new Date().toISOString(),
+    };
   }
 
   @Post('/register')
@@ -146,8 +152,15 @@ export class AuthController {
       }
     }
   })
-  async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const result = await this.authService.login(loginDto);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Req() req: ExpressRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const userAgent = req.headers['user-agent'];
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] as string;
+
+    const result = await this.authService.login(loginDto, userAgent, ipAddress);
 
     const isProduction = process.env.NODE_ENV === 'production';
 
@@ -203,7 +216,10 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const refreshToken = req.cookies?.refresh_token;
-    const result = await this.authService.refreshToken(refreshToken);
+    const userAgent = req.headers['user-agent'];
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] as string;
+
+    const result = await this.authService.refreshToken(refreshToken, userAgent, ipAddress);
 
     const isProduction = process.env.NODE_ENV === 'production';
 
@@ -227,7 +243,39 @@ export class AuthController {
     };
   }
 
+  @Post('/logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'User Logout',
+    description: 'Invalidate refresh token and clear cookies'
+  })
+  @ApiOkResponse({
+    description: 'Logout successful',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Logout successful' },
+      }
+    }
+  })
+  async logout(
+    @Req() req: ExpressRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = req.cookies?.refresh_token;
+
+    await this.authService.logout(refreshToken);
+
+    res.clearCookie('access_token');
+    res.clearCookie('refresh_token');
+
+    return {
+      message: 'Logout successful',
+    };
+  }
+
   @Get('/profile')
+  @UserOnly()
   @ApiOperation({
     summary: 'Get User Profile',
     description: 'Retrieve profile information of authenticated user'
@@ -241,23 +289,17 @@ export class AuthController {
         user: {
           type: 'object',
           properties: {
-            id: { type: 'number', example: 1 },
+            id: { type: 'string', example: 'uuid-1234-5678' },
             email: { type: 'string', example: 'user@example.com' },
-            name: { type: 'string', example: 'John Doe' },
-            iat: { type: 'number', example: 1640995200 },
-            exp: { type: 'number', example: 1641081600 }
+            firstName: { type: 'string', example: 'John' },
+            lastName: { type: 'string', example: 'Doe' },
+            phoneNumber: { type: 'string', example: '0812345678' },
+            isActive: { type: 'boolean', example: true },
+            isAdmin: { type: 'boolean', example: false },
+            createdAt: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
+            updatedAt: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
           }
         }
-      }
-    }
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthorized - Invalid or missing token',
-    schema: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', example: 401 },
-        message: { type: 'string', example: 'Unauthorized' }
       }
     }
   })
