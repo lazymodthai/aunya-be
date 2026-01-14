@@ -1,4 +1,4 @@
-import { ConflictException, InternalServerErrorException, Logger } from '@nestjs/common';
+import { ConflictException, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
@@ -10,6 +10,8 @@ import { PriceCalendarEntity } from '@/entities/price-calendar.entity';
 import { BookingStatus, DayType, RoomStatus } from 'constants/booking.enum';
 import { GenerateDiscountCodeDto } from './dto/generate-discount-code.dto';
 import { GetPriceByMonthDto } from './dto/get-price-by-month.dto';
+import { UpdatePriceDto } from './dto/update-price.dto';
+import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
 import { BookingEntity } from '@/entities/booking.entity';
 
 export class PricesService {
@@ -108,7 +110,7 @@ export class PricesService {
 
   }
 
-  async getPriceByMonth(getPriceByMonth: GetPriceByMonthDto): Promise<{ message: string, prices: { date: Date, price: number, status: RoomStatus }[] }> {
+  async getPriceByMonth(getPriceByMonth: GetPriceByMonthDto): Promise<{ message: string, prices: { id: string, date: Date, price: number, status: RoomStatus, isMaintenance: boolean }[] }> {
     if (getPriceByMonth.month < 1 || getPriceByMonth.month > 12) {
       throw new ConflictException('เดือนต้องอยู่ระหว่าง 1 ถึง 12');
     }
@@ -150,12 +152,36 @@ export class PricesService {
     return {
       message: 'ดึงข้อมูลราคาสำเร็จ',
       prices: prices.length === 0 ? [] : prices.map(price => ({
+        id: price.id,
         date: price.date,
         price: Number(price.price),
-        status: isDateBooked(new Date(price.date)) ? RoomStatus.UNAVAILABLE : RoomStatus.AVAILABLE
+        status: isDateBooked(new Date(price.date)) ? RoomStatus.UNAVAILABLE : RoomStatus.AVAILABLE,
+        isMaintenance: price.isMaintenance
       }))
     };
   }
 
+  async updatePrice(id: string, updatePriceDto: UpdatePriceDto): Promise<{ message: string }> {
+    const priceCalendar = await this.priceCalendarRepository.findOne({ where: { id } });
+    if (!priceCalendar) {
+      throw new NotFoundException(`ไม่พบข้อมูลราคา ID: ${id}`);
+    }
 
+    priceCalendar.price = updatePriceDto.price;
+    await this.priceCalendarRepository.save(priceCalendar);
+
+    return { message: 'อัปเดตราคาสำเร็จ' };
+  }
+
+  async updateMaintenance(id: string, updateMaintenanceDto: UpdateMaintenanceDto): Promise<{ message: string }> {
+    const priceCalendar = await this.priceCalendarRepository.findOne({ where: { id } });
+    if (!priceCalendar) {
+      throw new NotFoundException(`ไม่พบข้อมูลราคา ID: ${id}`);
+    }
+
+    priceCalendar.isMaintenance = updateMaintenanceDto.isMaintenance;
+    await this.priceCalendarRepository.save(priceCalendar);
+
+    return { message: 'อัปเดตสถานะการปิดปรับปรุงสำเร็จ' };
+  }
 }

@@ -1,9 +1,11 @@
-import { Controller, Post, Body, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Body, UsePipes, ValidationPipe, Patch, Param } from '@nestjs/common';
 import { PricesService } from './prices.service';
 import { GeneratePriceDto } from './dto/generate-price.dto';
-import { ApiBody, ApiOperation } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { GenerateDiscountCodeDto } from './dto/generate-discount-code.dto';
 import { GetPriceByMonthDto } from './dto/get-price-by-month.dto';
+import { UpdatePriceDto } from './dto/update-price.dto';
+import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
 
 @Controller('prices')
 export class PricesController {
@@ -46,4 +48,33 @@ export class PricesController {
     return this.pricesService.getPriceByMonth(getPriceByMonth);
   }
 
+  @Patch(':id/price')
+  @ApiOperation({
+    summary: "Update price by id",
+    description: "Update price by id",
+  })
+  @ApiParam({ name: 'id', description: 'Price calendar ID' })
+  @ApiBody({
+    type: UpdatePriceDto,
+    description: "Update price data",
+  })
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  updatePrice(@Param('id') id: string, @Body() updatePriceDto: UpdatePriceDto) {
+    return this.pricesService.updatePrice(id, updatePriceDto);
+  }
+
+  @Patch(':id/maintenance')
+  @ApiOperation({
+    summary: "Update maintenance status by id",
+    description: "Update maintenance status by id",
+  })
+  @ApiParam({ name: 'id', description: 'Price calendar ID' })
+  @ApiBody({
+    type: UpdateMaintenanceDto,
+    description: "Update maintenance data",
+  })
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  updateMaintenance(@Param('id') id: string, @Body() updateMaintenanceDto: UpdateMaintenanceDto) {
+    return this.pricesService.updateMaintenance(id, updateMaintenanceDto);
+  }
 }

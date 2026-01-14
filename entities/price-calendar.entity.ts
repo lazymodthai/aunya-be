@@ -23,6 +23,9 @@ export class PriceCalendarEntity {
   })
   description: string | null;
 
+  @Column({ type: 'boolean', default: false })
+  isMaintenance: boolean;
+
   @ManyToOne(() => RoomEntity)
   @JoinColumn({ name: 'roomId' })
   room: RoomEntity;
