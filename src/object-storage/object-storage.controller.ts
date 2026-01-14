@@ -1,4 +1,4 @@
-import { Controller, Post, UploadedFile, UseInterceptors, BadRequestException, Get, Param, Delete, Query, Res, HttpStatus, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, UploadedFile, UseInterceptors, BadRequestException, Get, Param, Delete, Query, Res, HttpStatus, Request } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ObjectStorageService } from './object-storage.service';
 import { GetFileDto } from './dto/get-file.dto';
@@ -8,7 +8,6 @@ import { Response } from 'express';
 import { UploadedFileService } from '../uploaded-files/uploaded-file.service';
 import { UploadedFileResponseDto } from '../uploaded-files/dto/uploaded-file-response.dto';
 import { plainToClass } from 'class-transformer';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('object-storage')
 export class ObjectStorageController {
@@ -18,7 +17,6 @@ export class ObjectStorageController {
   ) { }
 
   @Post('upload')
-  @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,

@@ -2,7 +2,6 @@ import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { ObjectStorageModule } from './object-storage/object-storage.module';
 import { UploadedFileModule } from './uploaded-files/uploaded-file.module';
@@ -36,7 +35,6 @@ import * as path from 'path';
       }),
       inject: [ConfigService],
     }),
-    UsersModule,
     AuthModule,
     ObjectStorageModule,
     UploadedFileModule,
