@@ -6,6 +6,7 @@ import { GenerateDiscountCodeDto } from './dto/generate-discount-code.dto';
 import { GetPriceByMonthDto } from './dto/get-price-by-month.dto';
 import { UpdatePriceDto } from './dto/update-price.dto';
 import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
+import { ResetPriceDto } from './dto/reset-price.dto';
 
 @Controller('prices')
 export class PricesController {
@@ -76,5 +77,19 @@ export class PricesController {
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   updateMaintenance(@Param('id') id: string, @Body() updateMaintenanceDto: UpdateMaintenanceDto) {
     return this.pricesService.updateMaintenance(id, updateMaintenanceDto);
+  }
+
+  @Post('reset')
+  @ApiOperation({
+    summary: "Reset prices by year and room",
+    description: "ลบข้อมูลราคาทั้งหมดของห้องและปีที่ระบุ เพื่อ generate ใหม่",
+  })
+  @ApiBody({
+    type: ResetPriceDto,
+    description: "Reset price data",
+  })
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  resetPrices(@Body() resetPriceDto: ResetPriceDto) {
+    return this.pricesService.resetPrices(resetPriceDto);
   }
 }

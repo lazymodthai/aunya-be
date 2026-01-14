@@ -12,6 +12,7 @@ import { GenerateDiscountCodeDto } from './dto/generate-discount-code.dto';
 import { GetPriceByMonthDto } from './dto/get-price-by-month.dto';
 import { UpdatePriceDto } from './dto/update-price.dto';
 import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
+import { ResetPriceDto } from './dto/reset-price.dto';
 import { BookingEntity } from '@/entities/booking.entity';
 
 export class PricesService {
@@ -27,11 +28,19 @@ export class PricesService {
   ) { }
 
   async generatePrices(generatePriceDto: GeneratePriceDto): Promise<{ message: string; count: number }> {
-    const { roomId, weekdayPrice, weekendPrice, holidayPrice } = generatePriceDto;
+    const { year, roomId, weekdayPrice, weekendPrice, holidayPrice } = generatePriceDto;
 
-    const existingPrice = await this.priceCalendarRepository.findOne({ where: { roomId } });
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31);
+
+    const existingPrice = await this.priceCalendarRepository.findOne({
+      where: {
+        roomId,
+        date: Between(startDate, endDate),
+      },
+    });
     if (existingPrice) {
-      throw new ConflictException(`ราคาสำหรับห้อง ID: ${roomId} ได้ถูกสร้างไว้แล้ว`);
+      throw new ConflictException(`ราคาสำหรับห้อง ID: ${roomId} ปี ${year} ได้ถูกสร้างไว้แล้ว`);
     }
 
     const holidays = await this._fetchHolidays();
@@ -40,9 +49,6 @@ export class PricesService {
     );
 
     const pricesToCreate: PriceCalendarEntity[] = [];
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setFullYear(startDate.getFullYear() + 1);
 
     for (let day = new Date(startDate); day <= endDate; day.setDate(day.getDate() + 1)) {
       const currentDateStr = day.toISOString().split('T')[0];
@@ -78,7 +84,7 @@ export class PricesService {
     await this.priceCalendarRepository.save(pricesToCreate, { chunk: 100 });
 
     return {
-      message: 'สร้างข้อมูลราคาสำเร็จ',
+      message: `สร้างข้อมูลราคาปี ${year} สำเร็จ`,
       count: pricesToCreate.length,
     };
   }
@@ -183,5 +189,26 @@ export class PricesService {
     await this.priceCalendarRepository.save(priceCalendar);
 
     return { message: 'อัปเดตสถานะการปิดปรับปรุงสำเร็จ' };
+  }
+
+  async resetPrices(resetPriceDto: ResetPriceDto): Promise<{ message: string; deletedCount: number }> {
+    const { year, roomId } = resetPriceDto;
+
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31);
+
+    const result = await this.priceCalendarRepository
+      .createQueryBuilder()
+      .delete()
+      .from(PriceCalendarEntity)
+      .where('roomId = :roomId', { roomId })
+      .andWhere('date >= :startDate', { startDate })
+      .andWhere('date <= :endDate', { endDate })
+      .execute();
+
+    return {
+      message: `ลบข้อมูลราคาของปี ${year} สำเร็จ`,
+      deletedCount: result.affected || 0,
+    };
   }
 }

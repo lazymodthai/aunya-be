@@ -4,6 +4,14 @@ import { IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString } from 'class-va
 export class GeneratePriceDto {
   @ApiProperty({
     type: Number,
+    description: 'ปีที่ต้องการสร้างราคา เช่น 2026',
+    example: 2026,
+  })
+  @IsNumber()
+  year: number;
+
+  @ApiProperty({
+    type: Number,
   })
   @IsNumber()
   @IsPositive()
