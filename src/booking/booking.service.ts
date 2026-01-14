@@ -4,7 +4,7 @@ import {
   InternalServerErrorException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Between, LessThan, MoreThan, Repository } from "typeorm";
+import { Between, LessThan, LessThanOrEqual, MoreThan, Repository } from "typeorm";
 import { BookDto } from "./dto/book.dto";
 import { BookingStatus } from "@/constants/booking.enum";
 import { BookingEntity } from "@/entities/booking.entity";
@@ -192,5 +192,28 @@ export class BookingService {
           };
         });
       });
+  }
+
+  async getBookingsByDate(date: string, status?: BookingStatus): Promise<BookingEntity[]> {
+    try {
+      const searchDate = new Date(date);
+
+      const whereCondition: any = {
+        checkinDate: LessThanOrEqual(searchDate),
+        checkoutDate: MoreThan(searchDate),
+      };
+
+      if (status) {
+        whereCondition.status = status;
+      }
+
+      const bookings = await this.bookingRepository.find({
+        where: whereCondition,
+      });
+
+      return bookings;
+    } catch (error) {
+      throw new InternalServerErrorException("Database query failed");
+    }
   }
 }

@@ -162,4 +162,47 @@ export class BookingController {
       throw new InternalServerErrorException("Failed to retrieve booking");
     }
   }
+
+  @Get("/find-by-date")
+  @ApiOperation({
+    summary: "Get bookings by date",
+    description: "Retrieve bookings that include the specified date",
+  })
+  @ApiQuery({
+    name: "date",
+    description: "Date to search (format: YYYY-MM-DD)",
+    type: "string",
+    required: true,
+    example: "2026-12-02",
+  })
+  @ApiQuery({
+    name: "status",
+    description: "Filter by booking status (optional, if not specified returns all)",
+    required: false,
+    enum: BookingStatus,
+  })
+  @HttpCode(HttpStatus.OK)
+  async getBookingsByDate(
+    @Query("date") date: string,
+    @Query("status") status?: BookingStatus
+  ) {
+    if (!date) {
+      throw new BadRequestException("Date is required");
+    }
+
+    try {
+      const bookings = await this.bookingService.getBookingsByDate(date, status);
+
+      return {
+        success: true,
+        data: bookings,
+        message: "Bookings retrieved successfully",
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException("Failed to retrieve bookings");
+    }
+  }
 }
