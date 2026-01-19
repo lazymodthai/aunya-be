@@ -297,4 +297,37 @@ export class AuthController {
       user: req.user,
     };
   }
+
+  @Get('/verify')
+  @UserOnly()
+  @ApiOperation({
+    summary: 'Verify User',
+    description: 'Verify user authentication and return active/admin status'
+  })
+  @ApiOkResponse({
+    description: 'User verified successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        isActive: { type: 'boolean', example: true },
+        isAdmin: { type: 'boolean', example: false },
+      }
+    }
+  })
+  @ApiUnauthorizedResponse({
+    description: 'User not authenticated',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 401 },
+        message: { type: 'string', example: 'Unauthorized' },
+      }
+    }
+  })
+  verifyUser(@Request() req) {
+    return {
+      isActive: req.user.isActive,
+      isAdmin: req.user.isAdmin,
+    };
+  }
 }
