@@ -17,7 +17,7 @@ export class BookingService {
     private readonly bookingRepository: Repository<BookingEntity>,
     @InjectRepository(PriceCalendarEntity)
     private readonly pricesRepository: Repository<PriceCalendarEntity>
-  ) {}
+  ) { }
 
   private generateRefCode(): string {
     const now = new Date();
@@ -97,7 +97,7 @@ export class BookingService {
       additionGuestNumber: bookDto.additionGuestNumber,
       name: bookDto.name,
       phoneNumber: bookDto.phoneNumber,
-      status: BookingStatus.PENDING,
+      status: BookingStatus.PAYMENT,
       totalPrice: bookDto.totalPrice,
       roomId: bookDto.roomId,
     });
@@ -209,6 +209,29 @@ export class BookingService {
 
       const bookings = await this.bookingRepository.find({
         where: whereCondition,
+      });
+
+      return bookings;
+    } catch (error) {
+      throw new InternalServerErrorException("Database query failed");
+    }
+  }
+
+  async getBookingsByCustomer(phoneNumber: string, status?: BookingStatus): Promise<BookingEntity[]> {
+    try {
+      const whereCondition: any = {
+        phoneNumber: phoneNumber,
+      };
+
+      if (status) {
+        whereCondition.status = status;
+      }
+
+      const bookings = await this.bookingRepository.find({
+        where: whereCondition,
+        order: {
+          createdAt: "DESC",
+        },
       });
 
       return bookings;

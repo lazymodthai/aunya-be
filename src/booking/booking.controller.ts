@@ -9,16 +9,18 @@ import {
   NotFoundException,
   Post,
   Query,
+  Request,
 } from "@nestjs/common";
 import { BookingService } from "./booking.service";
-import { ApiBody, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
+import { ApiBody, ApiOperation, ApiQuery, ApiTags, ApiOkResponse, ApiUnauthorizedResponse } from "@nestjs/swagger";
 import { BookDto } from "./dto/book.dto";
 import { BookingStatus } from "@/constants/booking.enum";
+import { UserOnly } from "@/auth/decorators";
 
 @ApiTags("Booking")
 @Controller("booking")
 export class BookingController {
-  constructor(private readonly bookingService: BookingService) {}
+  constructor(private readonly bookingService: BookingService) { }
 
   @Post("/book")
   // @UseGuards(JwtAuthGuard)
@@ -202,6 +204,63 @@ export class BookingController {
       if (error instanceof BadRequestException) {
         throw error;
       }
+      throw new InternalServerErrorException("Failed to retrieve bookings");
+    }
+  }
+
+  @Get("/my-bookings")
+  @UserOnly()
+  @ApiOperation({
+    summary: "Get all bookings for current user",
+    description: "Retrieve all bookings for the currently logged in user based on phone number",
+  })
+  @ApiQuery({
+    name: "status",
+    description: "Filter by booking status (optional)",
+    required: false,
+    enum: BookingStatus,
+  })
+  @ApiOkResponse({
+    description: "Bookings retrieved successfully",
+    schema: {
+      type: "object",
+      properties: {
+        success: { type: "boolean", example: true },
+        data: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              refCode: { type: "string" },
+              checkinDate: { type: "string" },
+              checkoutDate: { type: "string" },
+              status: { type: "string" },
+            },
+          },
+        },
+        message: { type: "string", example: "Bookings retrieved successfully" },
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({
+    description: "User not authenticated",
+  })
+  @HttpCode(HttpStatus.OK)
+  async getMyBookings(
+    @Request() req,
+    @Query("status") status?: BookingStatus
+  ) {
+    try {
+      const phoneNumber = req.user.phoneNumber;
+      const bookings = await this.bookingService.getBookingsByCustomer(phoneNumber, status);
+
+      return {
+        success: true,
+        data: bookings,
+        message: "Bookings retrieved successfully",
+      };
+    } catch (error) {
       throw new InternalServerErrorException("Failed to retrieve bookings");
     }
   }

@@ -5,8 +5,9 @@ export enum DayType {
 }
 
 export enum BookingStatus {
-  CONFIRMED = 'Confirmed',
-  PENDING = 'Pending',
+  CONFIRMED = 'Confirmed', //สำเร็จ
+  PAYMENT = 'Payment', //รอการชำระเงิน
+  PENDING = 'Pending', //รอการยืนยัน
   CANCELLED = 'Cancelled',
 }
 
