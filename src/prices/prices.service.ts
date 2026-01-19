@@ -1,4 +1,4 @@
-import { ConflictException, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
@@ -17,6 +17,7 @@ import { BookingEntity } from '@/entities/booking.entity';
 
 export class PricesService {
   private readonly logger = new Logger(PricesService.name);
+  private readonly uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
   constructor(
     @InjectRepository(PriceCalendarEntity)
@@ -168,6 +169,10 @@ export class PricesService {
   }
 
   async updatePrice(id: string, updatePriceDto: UpdatePriceDto): Promise<{ message: string }> {
+    if (!this.uuidRegex.test(id)) {
+      throw new BadRequestException(`ID ไม่ถูกต้อง: ${id} (ต้องเป็น UUID)`);
+    }
+
     const priceCalendar = await this.priceCalendarRepository.findOne({ where: { id } });
     if (!priceCalendar) {
       throw new NotFoundException(`ไม่พบข้อมูลราคา ID: ${id}`);
@@ -180,6 +185,10 @@ export class PricesService {
   }
 
   async updateMaintenance(id: string, updateMaintenanceDto: UpdateMaintenanceDto): Promise<{ message: string }> {
+    if (!this.uuidRegex.test(id)) {
+      throw new BadRequestException(`ID ไม่ถูกต้อง: ${id} (ต้องเป็น UUID)`);
+    }
+
     const priceCalendar = await this.priceCalendarRepository.findOne({ where: { id } });
     if (!priceCalendar) {
       throw new NotFoundException(`ไม่พบข้อมูลราคา ID: ${id}`);
