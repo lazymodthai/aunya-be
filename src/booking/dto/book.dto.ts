@@ -53,4 +53,13 @@ export class BookDto {
   })
   @IsString()
   roomId: string;
+
+  @ApiProperty({
+    type: String,
+    required: false,
+    description: 'Customer ID (user ID) of the person booking',
+  })
+  @IsString()
+  @IsOptional()
+  customerId?: string;
 }

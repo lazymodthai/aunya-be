@@ -252,8 +252,9 @@ export class BookingController {
     @Query("status") status?: BookingStatus
   ) {
     try {
+      const id = req.user.id;
       const phoneNumber = req.user.phoneNumber;
-      const bookings = await this.bookingService.getBookingsByCustomer(phoneNumber, status);
+      const bookings = await this.bookingService.getBookingsByCustomer(id, phoneNumber, status);
 
       return {
         success: true,

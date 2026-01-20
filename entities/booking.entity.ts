@@ -52,6 +52,9 @@ export class BookingEntity {
   @Column()
   roomId: string;
 
+  @Column({ nullable: true })
+  customerId: string;
+
   @ManyToOne(() => RoomEntity, room => room.bookings, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'roomId' })
   room: RoomEntity;

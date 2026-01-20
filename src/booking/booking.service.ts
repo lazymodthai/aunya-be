@@ -100,6 +100,7 @@ export class BookingService {
       status: BookingStatus.PAYMENT,
       totalPrice: bookDto.totalPrice,
       roomId: bookDto.roomId,
+      customerId: bookDto.customerId,
     });
 
     const savedBooking = await this.bookingRepository.save(booking);
@@ -217,14 +218,15 @@ export class BookingService {
     }
   }
 
-  async getBookingsByCustomer(phoneNumber: string, status?: BookingStatus): Promise<BookingEntity[]> {
+  async getBookingsByCustomer(id: string, phoneNumber: string, status?: BookingStatus): Promise<BookingEntity[]> {
     try {
-      const whereCondition: any = {
-        phoneNumber: phoneNumber,
-      };
+      let whereCondition: any = [
+        { customerId: id },
+        { phoneNumber: phoneNumber }
+      ];
 
       if (status) {
-        whereCondition.status = status;
+        whereCondition = whereCondition.map((cond: any) => ({ ...cond, status }));
       }
 
       const bookings = await this.bookingRepository.find({
