@@ -1,6 +1,5 @@
-import { Optional } from "@nestjs/common";
 import { ApiProperty } from "@nestjs/swagger";
-import { IsString } from "class-validator";
+import { IsNumber, IsOptional, IsString } from "class-validator";
 
 export class GenerateDiscountCodeDto {
   @ApiProperty({
@@ -8,7 +7,7 @@ export class GenerateDiscountCodeDto {
     required: false,
     description: "Discount code (If empty It will generate random code)",
   })
-  @Optional()
+  @IsOptional()
   @IsString()
   code?: string;
 
@@ -17,16 +16,18 @@ export class GenerateDiscountCodeDto {
     required: false,
     description: "Discount amount",
   })
-  @Optional()
-  discount: number | null;
+  @IsOptional()
+  @IsNumber()
+  discount?: number | null;
 
   @ApiProperty({
     type: Number,
     required: false,
     description: "Discount percentage",
   })
-  @Optional()
-  discountPercentage: number | null;
+  @IsOptional()
+  @IsNumber()
+  discountPercentage?: number | null;
 
   @ApiProperty({
     type: Number,
@@ -34,6 +35,7 @@ export class GenerateDiscountCodeDto {
     required: false,
     description: "Count",
   })
-  @Optional()
-  count: number;
+  @IsOptional()
+  @IsNumber()
+  count?: number;
 }

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UsePipes, ValidationPipe, Patch, Param } from '@nestjs/common';
+import { Controller, Post, Body, UsePipes, ValidationPipe, Patch, Param, Get } from '@nestjs/common';
 import { PricesService } from './prices.service';
 import { GeneratePriceDto } from './dto/generate-price.dto';
 import { ApiBody, ApiOperation, ApiParam } from '@nestjs/swagger';
@@ -10,7 +10,7 @@ import { ResetPriceDto } from './dto/reset-price.dto';
 
 @Controller('prices')
 export class PricesController {
-  constructor(private readonly pricesService: PricesService) {}
+  constructor(private readonly pricesService: PricesService) { }
 
   @Post('generate')
   @ApiOperation({
@@ -91,5 +91,34 @@ export class PricesController {
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   resetPrices(@Body() resetPriceDto: ResetPriceDto) {
     return this.pricesService.resetPrices(resetPriceDto);
+  }
+
+  @Get('discount-codes')
+  @ApiOperation({
+    summary: "Get all discount codes",
+    description: "ดึงข้อมูล discount codes ทั้งหมด",
+  })
+  getAllDiscountCodes() {
+    return this.pricesService.getAllDiscountCodes();
+  }
+
+  @Get('discount-codes/:code')
+  @ApiOperation({
+    summary: "Get discount by code",
+    description: "ดึงข้อมูล discount code ตาม code ที่ระบุ",
+  })
+  @ApiParam({ name: 'code', description: 'Discount code' })
+  getDiscountByCode(@Param('code') code: string) {
+    return this.pricesService.getDiscountByCode(code);
+  }
+
+  @Post('discount-codes/:code/use')
+  @ApiOperation({
+    summary: "Use discount code",
+    description: "ใช้ discount code (ลด count ลง 1)",
+  })
+  @ApiParam({ name: 'code', description: 'Discount code' })
+  useDiscountCode(@Param('code') code: string) {
+    return this.pricesService.useDiscountCode(code);
   }
 }

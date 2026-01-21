@@ -14,6 +14,7 @@ import { UpdatePriceDto } from './dto/update-price.dto';
 import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
 import { ResetPriceDto } from './dto/reset-price.dto';
 import { BookingEntity } from '@/entities/booking.entity';
+import { DiscountCodeEntity } from '@/entities/discount-codes.entity';
 
 export class PricesService {
   private readonly logger = new Logger(PricesService.name);
@@ -24,6 +25,8 @@ export class PricesService {
     private readonly priceCalendarRepository: Repository<PriceCalendarEntity>,
     @InjectRepository(BookingEntity)
     private readonly bookingRepository: Repository<BookingEntity>,
+    @InjectRepository(DiscountCodeEntity)
+    private readonly discountCodeRepository: Repository<DiscountCodeEntity>,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
   ) { }
@@ -113,8 +116,45 @@ export class PricesService {
     }
   }
 
-  async generateDiscountCode(_generateDiscountCode: GenerateDiscountCodeDto) {
+  async generateDiscountCode(generateDiscountCode: GenerateDiscountCodeDto): Promise<{ message: string; discountCode: DiscountCodeEntity }> {
+    const { code, discount, discountPercentage, count } = generateDiscountCode;
 
+    // ต้องกำหนด discount หรือ discountPercentage อย่างน้อย 1 อย่าง
+    if (discount === undefined && discountPercentage === undefined) {
+      throw new BadRequestException('ต้องกำหนด discount หรือ discountPercentage อย่างน้อย 1 อย่าง');
+    }
+
+    // สร้าง code ถ้าไม่ได้ส่งมา
+    const discountCode = code || this.generateRandomCode();
+
+    // ตรวจสอบว่า code ซ้ำหรือไม่
+    const existingCode = await this.discountCodeRepository.findOne({ where: { code: discountCode } });
+    if (existingCode) {
+      throw new ConflictException(`Discount code "${discountCode}" มีอยู่แล้ว`);
+    }
+
+    const newDiscountCode = this.discountCodeRepository.create({
+      code: discountCode,
+      discount: discount ?? null,
+      discountPercentage: discountPercentage ?? null,
+      count: count ?? 1,
+    });
+
+    const savedDiscountCode = await this.discountCodeRepository.save(newDiscountCode);
+
+    return {
+      message: 'สร้าง discount code สำเร็จ',
+      discountCode: savedDiscountCode,
+    };
+  }
+
+  private generateRandomCode(length: number = 8): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
   }
 
   async getPriceByMonth(getPriceByMonth: GetPriceByMonthDto): Promise<{ message: string, prices: { id: string, date: Date, price: number, status: RoomStatus, isMaintenance: boolean }[] }> {
@@ -218,6 +258,55 @@ export class PricesService {
     return {
       message: `ลบข้อมูลราคาของปี ${year} สำเร็จ`,
       deletedCount: result.affected || 0,
+    };
+  }
+
+  async getAllDiscountCodes(): Promise<{ message: string; discountCodes: DiscountCodeEntity[] }> {
+    const discountCodes = await this.discountCodeRepository.find({
+      order: { createdAt: 'DESC' }
+    });
+
+    return {
+      message: 'ดึงข้อมูล discount codes สำเร็จ',
+      discountCodes,
+    };
+  }
+
+  async getDiscountByCode(code: string): Promise<DiscountCodeEntity> {
+    const discountCode = await this.discountCodeRepository.findOne({
+      where: { code }
+    });
+
+    if (!discountCode) {
+      throw new NotFoundException(`ไม่พบ discount code: ${code}`);
+    }
+
+    return discountCode;
+
+  }
+
+  async useDiscountCode(code: string): Promise<{ message: string; discountCode: number }> {
+    const discountCode = await this.discountCodeRepository.findOne({
+      where: { code }
+    });
+
+    if (!discountCode) {
+      throw new NotFoundException(`ไม่พบ discount code: ${code}`);
+    }
+
+    if (discountCode.count <= 0) {
+      throw new BadRequestException(`Discount code "${code}" ถูกใช้หมดแล้ว`);
+    }
+
+    discountCode.count -= 1;
+    discountCode.usedAt = new Date();
+    discountCode.updatedAt = new Date();
+
+    const savedDiscountCode = await this.discountCodeRepository.save(discountCode);
+
+    return {
+      message: 'ใช้ discount code สำเร็จ',
+      discountCode: savedDiscountCode.count,
     };
   }
 }

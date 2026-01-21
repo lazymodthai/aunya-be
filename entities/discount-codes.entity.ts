@@ -10,10 +10,10 @@ export class DiscountCodeEntity {
   code: string;
 
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
-  discount: number | null;
+  discount?: number | null;
 
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
-  discountPercentage: number | null;
+  discountPercentage?: number | null;
 
   @Column({ default: 1 })
   count: number;
