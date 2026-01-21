@@ -25,10 +25,10 @@ export class SlipEntity {
   @Column({ type: "varchar", length: 255 })
   amount: string;
 
-  @Column({ type: "varchar", length: 255 })
+  @Column({ type: "varchar", length: 255, nullable: true })
   ref1: string;
 
-  @Column({ type: "varchar", length: 255 })
+  @Column({ type: "varchar", length: 255, nullable: true })
   ref2: string;
 
   @Column({ type: "varchar", length: 255, nullable: true })
