@@ -7,13 +7,18 @@ import {
   HttpStatus,
   InternalServerErrorException,
   NotFoundException,
+  Param,
+  Patch,
   Post,
   Query,
   Request,
+  UsePipes,
+  ValidationPipe,
 } from "@nestjs/common";
 import { BookingService } from "./booking.service";
-import { ApiBody, ApiOperation, ApiQuery, ApiTags, ApiOkResponse, ApiUnauthorizedResponse } from "@nestjs/swagger";
+import { ApiBody, ApiOperation, ApiParam, ApiQuery, ApiTags, ApiOkResponse, ApiUnauthorizedResponse } from "@nestjs/swagger";
 import { BookDto } from "./dto/book.dto";
+import { UpdateBookingStatusDto } from "./dto/update-booking-status.dto";
 import { BookingStatus } from "@/constants/booking.enum";
 import { UserOnly } from "@/auth/decorators";
 
@@ -264,5 +269,33 @@ export class BookingController {
     } catch (error) {
       throw new InternalServerErrorException("Failed to retrieve bookings");
     }
+  }
+
+  @Patch(":id/status")
+  @ApiOperation({
+    summary: "Update booking status by ID",
+    description: "Update the status of a booking",
+  })
+  @ApiParam({ name: "id", description: "Booking ID (UUID)" })
+  @ApiBody({
+    type: UpdateBookingStatusDto,
+    description: "New booking status",
+  })
+  @ApiOkResponse({
+    description: "Booking status updated successfully",
+    schema: {
+      type: "object",
+      properties: {
+        message: { type: "string", example: "อัปเดตสถานะการจองสำเร็จ" },
+      },
+    },
+  })
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  async updateBookingStatus(
+    @Param("id") id: string,
+    @Body() updateBookingStatusDto: UpdateBookingStatusDto
+  ) {
+    return this.bookingService.updateBookingStatus(id, updateBookingStatusDto.status);
   }
 }
