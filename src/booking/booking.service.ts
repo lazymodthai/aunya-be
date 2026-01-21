@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Between, LessThan, LessThanOrEqual, MoreThan, Repository } from "typeorm";
+import { Between, In, LessThan, LessThanOrEqual, MoreThan, Not, Repository } from "typeorm";
 import { BookDto } from "./dto/book.dto";
 import { BookingStatus } from "@/constants/booking.enum";
 import { BookingEntity } from "@/entities/booking.entity";
@@ -257,6 +257,20 @@ export class BookingService {
 
     booking.status = status;
     await this.bookingRepository.save(booking);
+
+    // หากสถานะเปลี่ยนเป็น Confirmed ให้ยกเลิกรายการอื่นที่วันที่ซ้อนทับกัน
+    if (status === BookingStatus.CONFIRMED) {
+      await this.bookingRepository.update(
+        {
+          // วันที่ซ้อนทับ: checkinDate < checkoutDate ของรายการที่ Confirmed และ checkoutDate > checkinDate ของรายการที่ Confirmed
+          checkinDate: LessThan(booking.checkoutDate),
+          checkoutDate: MoreThan(booking.checkinDate),
+          id: Not(id),
+          status: In([BookingStatus.PENDING, BookingStatus.PAYMENT]),
+        },
+        { status: BookingStatus.CANCELLED }
+      );
+    }
 
     return { message: "อัปเดตสถานะการจองสำเร็จ" };
   }
