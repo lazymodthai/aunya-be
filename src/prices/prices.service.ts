@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
+import { Between, In, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
@@ -138,7 +138,7 @@ export class PricesService {
     const confirmedBookings = await this.bookingRepository.find({
       where: {
         roomId: getPriceByMonth.roomId,
-        status: BookingStatus.CONFIRMED,
+        status: In([BookingStatus.PENDING, BookingStatus.CONFIRMED]),
         checkinDate: LessThanOrEqual(endDate),
         checkoutDate: MoreThan(startDate)
       }
