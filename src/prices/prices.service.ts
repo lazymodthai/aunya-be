@@ -15,6 +15,7 @@ import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
 import { ResetPriceDto } from './dto/reset-price.dto';
 import { BookingEntity } from '@/entities/booking.entity';
 import { DiscountCodeEntity } from '@/entities/discount-codes.entity';
+import { CalculatePriceDto } from './dto/calculate-price.dto';
 
 export class PricesService {
   private readonly logger = new Logger(PricesService.name);
@@ -307,6 +308,49 @@ export class PricesService {
     return {
       message: 'ใช้ discount code สำเร็จ',
       discountCode: savedDiscountCode.count,
+    };
+  }
+
+  async calculatePrice(calculatePriceDto: CalculatePriceDto): Promise<{
+    message: string;
+    totalPrice: number;
+    nights: number;
+    priceDetails: { date: string; price: number }[];
+  }> {
+    const { roomId, checkinDate, checkoutDate } = calculatePriceDto;
+
+    const checkin = new Date(checkinDate);
+    const checkout = new Date(checkoutDate);
+
+    if (checkout <= checkin) {
+      throw new BadRequestException('วันที่ checkout ต้องมากกว่าวันที่ checkin');
+    }
+
+    // ดึงราคาจาก checkin ถึง checkout - 1 วัน (วันออกไม่คิด)
+    const lastNight = new Date(checkout);
+    lastNight.setDate(lastNight.getDate() - 1);
+
+    const prices = await this.priceCalendarRepository.find({
+      where: {
+        roomId,
+        date: Between(checkin, lastNight),
+      },
+      order: { date: 'ASC' },
+    });
+
+    const priceDetails = prices.map(price => ({
+      date: new Date(price.date).toISOString().split('T')[0],
+      price: Number(price.price),
+    }));
+
+    const totalPrice = priceDetails.reduce((sum, item) => sum + item.price, 0);
+    const nights = priceDetails.length;
+
+    return {
+      message: 'คำนวณราคาสำเร็จ',
+      totalPrice,
+      nights,
+      priceDetails,
     };
   }
 }

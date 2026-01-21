@@ -7,6 +7,7 @@ import { GetPriceByMonthDto } from './dto/get-price-by-month.dto';
 import { UpdatePriceDto } from './dto/update-price.dto';
 import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
 import { ResetPriceDto } from './dto/reset-price.dto';
+import { CalculatePriceDto } from './dto/calculate-price.dto';
 
 @Controller('prices')
 export class PricesController {
@@ -120,5 +121,19 @@ export class PricesController {
   @ApiParam({ name: 'code', description: 'Discount code' })
   useDiscountCode(@Param('code') code: string) {
     return this.pricesService.useDiscountCode(code);
+  }
+
+  @Post('calculate')
+  @ApiOperation({
+    summary: "Calculate price for date range",
+    description: "คำนวณราคารวมสำหรับช่วงวันที่ checkin - checkout (ไม่รวมวัน checkout)",
+  })
+  @ApiBody({
+    type: CalculatePriceDto,
+    description: "Calculate price data",
+  })
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  calculatePrice(@Body() calculatePriceDto: CalculatePriceDto) {
+    return this.pricesService.calculatePrice(calculatePriceDto);
   }
 }
