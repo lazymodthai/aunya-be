@@ -5,9 +5,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BookingEntity } from '@/entities/booking.entity';
 import { RoomEntity } from '@/entities/rooms.entity';
 import { PriceCalendarEntity } from 'entities/price-calendar.entity';
+import { FilesModule } from '../files/files.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([BookingEntity, RoomEntity, PriceCalendarEntity])],
+  imports: [
+    TypeOrmModule.forFeature([BookingEntity, RoomEntity, PriceCalendarEntity]),
+    FilesModule,
+  ],
   controllers: [BookingController],
   providers: [BookingService],
   exports: [BookingService],

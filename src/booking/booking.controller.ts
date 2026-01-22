@@ -21,11 +21,14 @@ import { BookDto } from "./dto/book.dto";
 import { UpdateBookingStatusDto } from "./dto/update-booking-status.dto";
 import { BookingStatus } from "@/constants/booking.enum";
 import { UserOnly } from "@/auth/decorators";
+// import { FilesService } from "@src/files/files.service";
 
 @ApiTags("Booking")
 @Controller("booking")
 export class BookingController {
-  constructor(private readonly bookingService: BookingService) { }
+  constructor(private readonly bookingService: BookingService, 
+   ) { }
+
 
   @Post("/book")
   // @UseGuards(JwtAuthGuard)
@@ -60,7 +63,7 @@ export class BookingController {
   @Get("/booked/all")
   @ApiOperation({
     summary: "get all",
-    description: "get all booked rooms",
+    description: "get all booked rooms with files (QR codes and payment slips)",
   })
   @ApiQuery({
     name: "status",
@@ -70,7 +73,7 @@ export class BookingController {
   })
   @HttpCode(HttpStatus.OK)
   async getAllBookedRooms(@Query() query: { status?: BookingStatus }) {
-    return await this.bookingService.getAllBookRoomsNoconditon({
+    return await this.bookingService.getAllBookRoomsWithFiles({
       status: query.status,
     });
   }

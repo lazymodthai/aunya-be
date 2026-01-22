@@ -36,7 +36,9 @@ const BOT_API = {
 
 const SLIP_VERIFICATION_API = {
   url: process.env.SLIP_VERIFICATION_API_URL || '',
+  urlGenerate: process.env.SLIP_GENERATE_FILE || '',
   secretKey: process.env.SLIP_VERIFICATION_SECRET_KEY || '',
+
 }
 
 export { APP, NIPA_CLOUD, DB, BOT_API, SLIP_VERIFICATION_API }

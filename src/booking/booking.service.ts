@@ -11,6 +11,7 @@ import { BookDto } from "./dto/book.dto";
 import { BookingStatus } from "@/constants/booking.enum";
 import { BookingEntity } from "@/entities/booking.entity";
 import { PriceCalendarEntity } from "entities/price-calendar.entity";
+import { FilesService } from "../files/files.service";
 
 @Injectable()
 export class BookingService {
@@ -18,7 +19,8 @@ export class BookingService {
     @InjectRepository(BookingEntity)
     private readonly bookingRepository: Repository<BookingEntity>,
     @InjectRepository(PriceCalendarEntity)
-    private readonly pricesRepository: Repository<PriceCalendarEntity>
+    private readonly pricesRepository: Repository<PriceCalendarEntity>,
+    private readonly filesService: FilesService,
   ) { }
 
   private generateRefCode(): string {
@@ -136,6 +138,58 @@ export class BookingService {
       });
     }
     return await this.bookingRepository.find();
+  }
+
+  /**
+   * Get all bookings with associated files (QR codes and payment slips)
+   * Join using booking.refCode = files.roomId
+   */
+  async getAllBookRoomsWithFiles(query?: { status?: BookingStatus }) {
+    // Get all bookings
+    let bookings: BookingEntity[];
+    if (query?.status) {
+      bookings = await this.bookingRepository.find({
+        where: {
+          status: query.status,
+        },
+        order: {
+          createdAt: 'DESC',
+        },
+      });
+    } else {
+      bookings = await this.bookingRepository.find({
+        order: {
+          createdAt: 'DESC',
+        },
+      });
+    }
+
+    const bookingsWithFiles = await Promise.all(
+      bookings.map(async (booking) => {
+        const files = await this.filesService.getFilesByRoomId(booking.refCode);
+        const qrCode = files.find(f => f.type === "qrcode");
+        const slips = files.filter(f => f.type !== "qrcode");
+        return {
+          ...booking,
+          files: {
+            qrCode: qrCode ? {
+              id: qrCode.id,
+              fileUrl: qrCode.fileUrl,
+              createdAt: qrCode.createdAt,
+            } : null,
+            slips: slips.map(slip => ({
+              id: slip.id,
+              originalName: slip.originalName,
+              fileUrl: slip.fileUrl,
+              typeslip: slip.typeslip,
+              createdAt: slip.createdAt,
+            })),
+          },
+        };
+      })
+    );
+
+    return bookingsWithFiles;
   }
 
   async getBookedRoom(refCode: string): Promise<BookingEntity | null> {
