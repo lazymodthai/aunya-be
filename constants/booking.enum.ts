@@ -9,6 +9,8 @@ export enum BookingStatus {
   PAYMENT = 'Payment', //รอการชำระเงิน
   PENDING = 'Pending', //รอการยืนยัน
   CANCELLED = 'Cancelled',
+  CHECKED_IN = 'CheckedIn',
+  CHECKED_OUT = 'CheckedOut',
 }
 
 export enum RoomStatus {
