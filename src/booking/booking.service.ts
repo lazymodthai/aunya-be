@@ -259,7 +259,12 @@ export class BookingService {
     const [bookings, prices] = await Promise.all([
       this.bookingRepository.find({
         where: {
-          status: In([BookingStatus.PENDING, BookingStatus.CONFIRMED]),
+          status: In([
+            BookingStatus.PENDING,
+            BookingStatus.CONFIRMED,
+            BookingStatus.CHECKED_IN,
+            BookingStatus.CHECKED_OUT
+          ]),
           checkinDate: LessThanOrEqual(endDate),
           checkoutDate: MoreThan(startDate),
         },

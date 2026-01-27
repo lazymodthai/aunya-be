@@ -180,7 +180,12 @@ export class PricesService {
     const confirmedBookings = await this.bookingRepository.find({
       where: {
         roomId: getPriceByMonth.roomId,
-        status: In([BookingStatus.PENDING, BookingStatus.CONFIRMED]),
+        status: In([
+          BookingStatus.PENDING,
+          BookingStatus.CONFIRMED,
+          BookingStatus.CHECKED_IN,
+          BookingStatus.CHECKED_OUT
+        ]),
         checkinDate: LessThanOrEqual(endDate),
         checkoutDate: MoreThan(startDate)
       }
