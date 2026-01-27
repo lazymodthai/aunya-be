@@ -251,6 +251,49 @@ export class BookingService {
       });
   }
 
+  async getDisabledDates(): Promise<string[]> {
+    const now = new Date();
+    const startDate = new Date(now.getFullYear(), 0, 1);
+    const endDate = new Date(now.getFullYear() + 1, 11, 31);
+
+    const [bookings, prices] = await Promise.all([
+      this.bookingRepository.find({
+        where: {
+          status: In([BookingStatus.PENDING, BookingStatus.CONFIRMED]),
+          checkinDate: LessThanOrEqual(endDate),
+          checkoutDate: MoreThan(startDate),
+        },
+      }),
+      this.pricesRepository.find({
+        where: [
+          { date: Between(startDate, endDate), isMaintenance: true },
+          { date: Between(startDate, endDate), price: 0 },
+        ],
+      }),
+    ]);
+
+    const toDateString = (date: Date): string => {
+      const d = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+      return d.toISOString().split('T')[0];
+    };
+
+    const disabledSet = new Set<string>();
+
+    for (const booking of bookings) {
+      const checkin = new Date(booking.checkinDate);
+      const checkout = new Date(booking.checkoutDate);
+      for (let d = new Date(checkin); d < checkout; d.setDate(d.getDate() + 1)) {
+        disabledSet.add(toDateString(d));
+      }
+    }
+
+    for (const price of prices) {
+      disabledSet.add(toDateString(new Date(price.date)));
+    }
+
+    return Array.from(disabledSet).sort();
+  }
+
   async getBookingsByDate(date: string, status?: BookingStatus): Promise<BookingEntity[]> {
     try {
       const searchDate = new Date(date);

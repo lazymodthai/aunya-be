@@ -58,6 +58,16 @@ export class BookingController {
     return await this.bookingService.getAllDate();
   }
 
+  @Get("/disabled-dates")
+  @ApiOperation({
+    summary: "Get disabled dates",
+    description: "Get disabled dates",
+  })
+  @HttpCode(HttpStatus.OK)
+  async getDisabledDates() {
+    return await this.bookingService.getDisabledDates();
+  }
+
   @Get("/booked/all")
   @AdminOnly()
   @ApiOperation({
