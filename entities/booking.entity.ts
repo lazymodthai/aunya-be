@@ -39,18 +39,21 @@ export class BookingEntity {
   @Column({
     type: 'enum',
     enum: BookingStatus,
-    default: BookingStatus.PENDING,
+    default: BookingStatus.PAYMENT,
   })
   status: BookingStatus;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp with time zone' })
   updatedAt: Date;
 
   @Column()
   roomId: string;
+
+  @Column({ nullable: true })
+  customerId: string;
 
   @ManyToOne(() => RoomEntity, room => room.bookings, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'roomId' })

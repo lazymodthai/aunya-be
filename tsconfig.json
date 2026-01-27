@@ -33,6 +33,7 @@
       "@/message/*": ["message/*"],
       "@/firebase/*": ["src/firebase/*"],
       "@/device-tokens/*": ["src/device-tokens/*"],
+      "@/auth/*": ["src/auth/*"],
       "@/lazymodthai/*": ["src/lazymodthai/*"]
     }
   }

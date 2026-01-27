@@ -10,20 +10,20 @@ export class DiscountCodeEntity {
   code: string;
 
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
-  discount: number | null;
+  discount?: number | null;
 
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
-  discountPercentage: number | null;
+  discountPercentage?: number | null;
 
   @Column({ default: 1 })
   count: number;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp with time zone', nullable: true })
   usedAt: Date | null;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: 'timestamp with time zone', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp with time zone', nullable: true })
   updatedAt: Date;
 }

@@ -3,12 +3,22 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    cors: true,
     logger: ['error', 'warn', 'log'],
   });
+
+  // Enable CORS with credentials support for frontend
+  app.enableCors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:8022',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  });
+
+  app.use(cookieParser());
 
   const config = new DocumentBuilder()
     .setTitle('Aunya API Docs')
@@ -30,13 +40,6 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
-
-  app.enableCors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    // credentials: true,
-  });
 
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,

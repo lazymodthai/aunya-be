@@ -30,8 +30,15 @@ const DB = {
 }
 
 const BOT_API = {
-  clientId: process.env.BOT_API_CLIENT_ID || '',
   url: process.env.BOT_API_URL || '',
+  token: process.env.BOT_API_TOKEN || '',
 }
 
-export { APP, NIPA_CLOUD, DB, BOT_API }
+const SLIP_VERIFICATION_API = {
+  url: process.env.SLIP_VERIFICATION_API_URL || '',
+  urlGenerate: process.env.SLIP_GENERATE_FILE || '',
+  secretKey: process.env.SLIP_VERIFICATION_SECRET_KEY || '',
+
+}
+
+export { APP, NIPA_CLOUD, DB, BOT_API, SLIP_VERIFICATION_API }

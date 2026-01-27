@@ -1,0 +1,17 @@
+import { Module } from "@nestjs/common";
+import { FilesService } from "./files.service";
+import { FilesController } from "./files.controller";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { FileEntity } from "./entities/files.entity";
+import { CheckSlipModule } from "../check-slip/check-slip.module";
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([FileEntity]),
+    CheckSlipModule,
+  ],
+  controllers: [FilesController],
+  providers: [FilesService],
+  exports: [FilesService],
+})
+export class FilesModule {}

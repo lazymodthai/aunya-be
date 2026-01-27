@@ -17,7 +17,7 @@ export class UserEntity {
   @Column()
   lastName: string;
 
-  @Column()
+  @Column({ unique: true })
   phoneNumber: string;
 
   @Column({ default: true })
@@ -26,10 +26,10 @@ export class UserEntity {
   @Column({ default: false })
   isAdmin: boolean;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp with time zone' })
   updatedAt: Date;
-  
+
 }

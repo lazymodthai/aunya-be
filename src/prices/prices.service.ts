@@ -1,6 +1,6 @@
-import { ConflictException, InternalServerErrorException, Logger } from '@nestjs/common';
+import { BadRequestException, ConflictException, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
+import { Between, In, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
@@ -10,37 +10,50 @@ import { PriceCalendarEntity } from '@/entities/price-calendar.entity';
 import { BookingStatus, DayType, RoomStatus } from 'constants/booking.enum';
 import { GenerateDiscountCodeDto } from './dto/generate-discount-code.dto';
 import { GetPriceByMonthDto } from './dto/get-price-by-month.dto';
+import { UpdatePriceDto } from './dto/update-price.dto';
+import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
+import { ResetPriceDto } from './dto/reset-price.dto';
 import { BookingEntity } from '@/entities/booking.entity';
+import { DiscountCodeEntity } from '@/entities/discount-codes.entity';
+import { CalculatePriceDto } from './dto/calculate-price.dto';
 
 export class PricesService {
   private readonly logger = new Logger(PricesService.name);
+  private readonly uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
   constructor(
     @InjectRepository(PriceCalendarEntity)
     private readonly priceCalendarRepository: Repository<PriceCalendarEntity>,
     @InjectRepository(BookingEntity)
     private readonly bookingRepository: Repository<BookingEntity>,
+    @InjectRepository(DiscountCodeEntity)
+    private readonly discountCodeRepository: Repository<DiscountCodeEntity>,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
   ) { }
 
   async generatePrices(generatePriceDto: GeneratePriceDto): Promise<{ message: string; count: number }> {
-    const { roomId, weekdayPrice, weekendPrice, holidayPrice } = generatePriceDto;
+    const { year, roomId, weekdayPrice, weekendPrice, holidayPrice } = generatePriceDto;
 
-    const existingPrice = await this.priceCalendarRepository.findOne({ where: { roomId } });
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31);
+
+    const existingPrice = await this.priceCalendarRepository.findOne({
+      where: {
+        roomId,
+        date: Between(startDate, endDate),
+      },
+    });
     if (existingPrice) {
-      throw new ConflictException(`ราคาสำหรับห้อง ID: ${roomId} ได้ถูกสร้างไว้แล้ว`);
+      throw new ConflictException(`ราคาสำหรับห้อง ID: ${roomId} ปี ${year} ได้ถูกสร้างไว้แล้ว`);
     }
 
-    const holidays = await this._fetchHolidays();
+    const holidays = await this._fetchHolidays(year);
     const holidayMap = new Map<string, string>(
       holidays.map(h => [h.Date, h.HolidayDescriptionThai])
     );
 
     const pricesToCreate: PriceCalendarEntity[] = [];
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setFullYear(startDate.getFullYear() + 1);
 
     for (let day = new Date(startDate); day <= endDate; day.setDate(day.getDate() + 1)) {
       const currentDateStr = day.toISOString().split('T')[0];
@@ -54,10 +67,11 @@ export class PricesService {
         dayType = DayType.HOLIDAY;
         price = holidayPrice;
         description = holidayMap.get(currentDateStr) || '';
-      } else if (dayOfWeek === 0 || dayOfWeek === 6) {
+      } else if (dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6) {
         dayType = DayType.WEEKEND;
         price = weekendPrice;
-        description = dayOfWeek === 0 ? 'วันอาทิตย์' : 'วันเสาร์';
+        const dayNames: Record<number, string> = { 0: 'วันอาทิตย์', 5: 'วันศุกร์', 6: 'วันเสาร์' };
+        description = dayNames[dayOfWeek];
       } else {
         dayType = DayType.WEEKDAY;
         price = weekdayPrice;
@@ -76,15 +90,15 @@ export class PricesService {
     await this.priceCalendarRepository.save(pricesToCreate, { chunk: 100 });
 
     return {
-      message: 'สร้างข้อมูลราคาสำเร็จ',
+      message: `สร้างข้อมูลราคาปี ${year} สำเร็จ`,
       count: pricesToCreate.length,
     };
   }
 
-  private async _fetchHolidays(): Promise<{ Date: string; HolidayDescriptionThai: string }[]> {
-    const clientId = this.configService.get<string>('BOT_API_CLIENT_ID');
-    if (!clientId) {
-      throw new InternalServerErrorException('BOT API Client ID is not configured.');
+  private async _fetchHolidays(year: number): Promise<{ Date: string; HolidayDescriptionThai: string }[]> {
+    const token = this.configService.get<string>('BOT_API_TOKEN');
+    if (!token) {
+      throw new InternalServerErrorException('BOT API Token is not configured.');
     }
 
     try {
@@ -93,8 +107,8 @@ export class PricesService {
         throw new InternalServerErrorException('BOT API URL is not configured.');
       }
       const response = await firstValueFrom(
-        this.httpService.get(BOT_API_URL, {
-          headers: { 'X-IBM-Client-Id': clientId },
+        this.httpService.get(`${BOT_API_URL}/?year=${year}`, {
+          headers: { 'Accept': 'application/json', 'Authorization': `${token}` },
         }),
       );
       return response.data.result.data;
@@ -104,11 +118,48 @@ export class PricesService {
     }
   }
 
-  async generateDiscountCode(_generateDiscountCode: GenerateDiscountCodeDto) {
+  async generateDiscountCode(generateDiscountCode: GenerateDiscountCodeDto): Promise<{ message: string; discountCode: DiscountCodeEntity }> {
+    const { code, discount, discountPercentage, count } = generateDiscountCode;
 
+    // ต้องกำหนด discount หรือ discountPercentage อย่างน้อย 1 อย่าง
+    if (discount === undefined && discountPercentage === undefined) {
+      throw new BadRequestException('ต้องกำหนด discount หรือ discountPercentage อย่างน้อย 1 อย่าง');
+    }
+
+    // สร้าง code ถ้าไม่ได้ส่งมา
+    const discountCode = code || this.generateRandomCode();
+
+    // ตรวจสอบว่า code ซ้ำหรือไม่
+    const existingCode = await this.discountCodeRepository.findOne({ where: { code: discountCode } });
+    if (existingCode) {
+      throw new ConflictException(`Discount code "${discountCode}" มีอยู่แล้ว`);
+    }
+
+    const newDiscountCode = this.discountCodeRepository.create({
+      code: discountCode,
+      discount: discount ?? null,
+      discountPercentage: discountPercentage ?? null,
+      count: count ?? 1,
+    });
+
+    const savedDiscountCode = await this.discountCodeRepository.save(newDiscountCode);
+
+    return {
+      message: 'สร้าง discount code สำเร็จ',
+      discountCode: savedDiscountCode,
+    };
   }
 
-  async getPriceByMonth(getPriceByMonth: GetPriceByMonthDto): Promise<{ message: string, prices: { date: Date, price: number, status: RoomStatus }[] }> {
+  private generateRandomCode(length: number = 8): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
+  async getPriceByMonth(getPriceByMonth: GetPriceByMonthDto): Promise<{ message: string, prices: { id: string, date: Date, price: number, status: RoomStatus, isMaintenance: boolean }[] }> {
     if (getPriceByMonth.month < 1 || getPriceByMonth.month > 12) {
       throw new ConflictException('เดือนต้องอยู่ระหว่าง 1 ถึง 12');
     }
@@ -129,7 +180,12 @@ export class PricesService {
     const confirmedBookings = await this.bookingRepository.find({
       where: {
         roomId: getPriceByMonth.roomId,
-        status: BookingStatus.CONFIRMED,
+        status: In([
+          BookingStatus.PENDING,
+          BookingStatus.CONFIRMED,
+          BookingStatus.CHECKED_IN,
+          BookingStatus.CHECKED_OUT
+        ]),
         checkinDate: LessThanOrEqual(endDate),
         checkoutDate: MoreThan(startDate)
       }
@@ -150,12 +206,157 @@ export class PricesService {
     return {
       message: 'ดึงข้อมูลราคาสำเร็จ',
       prices: prices.length === 0 ? [] : prices.map(price => ({
+        id: price.id,
         date: price.date,
         price: Number(price.price),
-        status: isDateBooked(new Date(price.date)) ? RoomStatus.UNAVAILABLE : RoomStatus.AVAILABLE
+        status: isDateBooked(new Date(price.date)) ? RoomStatus.UNAVAILABLE : RoomStatus.AVAILABLE,
+        isMaintenance: price.isMaintenance
       }))
     };
   }
 
+  async updatePrice(id: string, updatePriceDto: UpdatePriceDto): Promise<{ message: string }> {
+    if (!this.uuidRegex.test(id)) {
+      throw new BadRequestException(`ID ไม่ถูกต้อง: ${id} (ต้องเป็น UUID)`);
+    }
 
+    const priceCalendar = await this.priceCalendarRepository.findOne({ where: { id } });
+    if (!priceCalendar) {
+      throw new NotFoundException(`ไม่พบข้อมูลราคา ID: ${id}`);
+    }
+
+    priceCalendar.price = updatePriceDto.price;
+    await this.priceCalendarRepository.save(priceCalendar);
+
+    return { message: 'อัปเดตราคาสำเร็จ' };
+  }
+
+  async updateMaintenance(id: string, updateMaintenanceDto: UpdateMaintenanceDto): Promise<{ message: string }> {
+    if (!this.uuidRegex.test(id)) {
+      throw new BadRequestException(`ID ไม่ถูกต้อง: ${id} (ต้องเป็น UUID)`);
+    }
+
+    const priceCalendar = await this.priceCalendarRepository.findOne({ where: { id } });
+    if (!priceCalendar) {
+      throw new NotFoundException(`ไม่พบข้อมูลราคา ID: ${id}`);
+    }
+
+    priceCalendar.isMaintenance = updateMaintenanceDto.isMaintenance;
+    await this.priceCalendarRepository.save(priceCalendar);
+
+    return { message: 'อัปเดตสถานะการปิดปรับปรุงสำเร็จ' };
+  }
+
+  async resetPrices(resetPriceDto: ResetPriceDto): Promise<{ message: string; deletedCount: number }> {
+    const { year, roomId } = resetPriceDto;
+
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31);
+
+    const result = await this.priceCalendarRepository
+      .createQueryBuilder()
+      .delete()
+      .from(PriceCalendarEntity)
+      .where('roomId = :roomId', { roomId })
+      .andWhere('date >= :startDate', { startDate })
+      .andWhere('date <= :endDate', { endDate })
+      .execute();
+
+    return {
+      message: `ลบข้อมูลราคาของปี ${year} สำเร็จ`,
+      deletedCount: result.affected || 0,
+    };
+  }
+
+  async getAllDiscountCodes(): Promise<{ message: string; discountCodes: DiscountCodeEntity[] }> {
+    const discountCodes = await this.discountCodeRepository.find({
+      order: { createdAt: 'DESC' }
+    });
+
+    return {
+      message: 'ดึงข้อมูล discount codes สำเร็จ',
+      discountCodes,
+    };
+  }
+
+  async getDiscountByCode(code: string): Promise<DiscountCodeEntity> {
+    const discountCode = await this.discountCodeRepository.findOne({
+      where: { code }
+    });
+
+    if (!discountCode) {
+      throw new NotFoundException(`ไม่พบ discount code: ${code}`);
+    }
+
+    return discountCode;
+
+  }
+
+  async useDiscountCode(code: string): Promise<{ message: string; discountCode: number }> {
+    const discountCode = await this.discountCodeRepository.findOne({
+      where: { code }
+    });
+
+    if (!discountCode) {
+      throw new NotFoundException(`ไม่พบ discount code: ${code}`);
+    }
+
+    if (discountCode.count <= 0) {
+      throw new BadRequestException(`Discount code "${code}" ถูกใช้หมดแล้ว`);
+    }
+
+    discountCode.count -= 1;
+    discountCode.usedAt = new Date();
+    discountCode.updatedAt = new Date();
+
+    const savedDiscountCode = await this.discountCodeRepository.save(discountCode);
+
+    return {
+      message: 'ใช้ discount code สำเร็จ',
+      discountCode: savedDiscountCode.count,
+    };
+  }
+
+  async calculatePrice(calculatePriceDto: CalculatePriceDto): Promise<{
+    message: string;
+    totalPrice: number;
+    nights: number;
+    priceDetails: { date: string; price: number }[];
+  }> {
+    const { roomId, checkinDate, checkoutDate } = calculatePriceDto;
+
+    const checkin = new Date(checkinDate);
+    const checkout = new Date(checkoutDate);
+
+    if (checkout <= checkin) {
+      throw new BadRequestException('วันที่ checkout ต้องมากกว่าวันที่ checkin');
+    }
+
+    // ดึงราคาจาก checkin ถึง checkout - 1 วัน (วันออกไม่คิด)
+    const lastNight = new Date(checkout);
+    lastNight.setDate(lastNight.getDate() - 1);
+
+    const prices = await this.priceCalendarRepository.find({
+      where: {
+        roomId,
+        date: Between(checkin, lastNight),
+      },
+      order: { date: 'ASC' },
+    });
+
+    const priceDetails = prices.map(price => ({
+      date: new Date(price.date).toISOString().split('T')[0],
+      price: Number(price.price),
+    }));
+
+    const totalPrice = priceDetails.reduce((sum, item) => sum + item.price, 0);
+    const nights = priceDetails.length;
+
+    return {
+      message: 'คำนวณราคาสำเร็จ',
+      totalPrice,
+      nights,
+      priceDetails,
+    };
+  }
 }
