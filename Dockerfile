@@ -29,4 +29,4 @@ RUN yarn run build
 EXPOSE 3200
 
 # Start the server
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main"]
