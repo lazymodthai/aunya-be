@@ -49,7 +49,6 @@ export class BookingController {
   }
 
   @Get("/dates")
-  @AdminOnly()
   @ApiOperation({
     summary: "Get all dates",
     description: "Get all dates",
