@@ -54,6 +54,11 @@ jobs:
             echo "BOT_API_TOKEN=${{ secrets.BOT_API_TOKEN }}" >> .env
             echo "BOT_API_URL=${{ secrets.BOT_API_URL }}" >> .env
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+            echo "CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}" >> .env
+            echo "APP_TITLE=${{ secrets.APP_TITLE }}" >> .env
+            echo "APP_PORT=${{ secrets.APP_PORT }}" >> .env
+            echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
             docker compose pull
             docker compose up -
             docker image prune -af --filter "until=72h"
