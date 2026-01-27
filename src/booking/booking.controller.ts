@@ -278,7 +278,6 @@ export class BookingController {
   }
 
   @Patch(":id/status")
-  @AdminOnly()
   @ApiOperation({
     summary: "Update booking status by ID",
     description: "Update the status of a booking",

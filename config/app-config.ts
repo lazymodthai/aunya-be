@@ -30,8 +30,8 @@ const DB = {
 }
 
 const BOT_API = {
-  clientId: process.env.BOT_API_CLIENT_ID || '',
   url: process.env.BOT_API_URL || '',
+  token: process.env.BOT_API_TOKEN || '',
 }
 
 const SLIP_VERIFICATION_API = {

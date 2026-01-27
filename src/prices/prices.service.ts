@@ -48,7 +48,7 @@ export class PricesService {
       throw new ConflictException(`ราคาสำหรับห้อง ID: ${roomId} ปี ${year} ได้ถูกสร้างไว้แล้ว`);
     }
 
-    const holidays = await this._fetchHolidays();
+    const holidays = await this._fetchHolidays(year);
     const holidayMap = new Map<string, string>(
       holidays.map(h => [h.Date, h.HolidayDescriptionThai])
     );
@@ -67,10 +67,11 @@ export class PricesService {
         dayType = DayType.HOLIDAY;
         price = holidayPrice;
         description = holidayMap.get(currentDateStr) || '';
-      } else if (dayOfWeek === 0 || dayOfWeek === 6) {
+      } else if (dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6) {
         dayType = DayType.WEEKEND;
         price = weekendPrice;
-        description = dayOfWeek === 0 ? 'วันอาทิตย์' : 'วันเสาร์';
+        const dayNames: Record<number, string> = { 0: 'วันอาทิตย์', 5: 'วันศุกร์', 6: 'วันเสาร์' };
+        description = dayNames[dayOfWeek];
       } else {
         dayType = DayType.WEEKDAY;
         price = weekdayPrice;
@@ -94,10 +95,10 @@ export class PricesService {
     };
   }
 
-  private async _fetchHolidays(): Promise<{ Date: string; HolidayDescriptionThai: string }[]> {
-    const clientId = this.configService.get<string>('BOT_API_CLIENT_ID');
-    if (!clientId) {
-      throw new InternalServerErrorException('BOT API Client ID is not configured.');
+  private async _fetchHolidays(year: number): Promise<{ Date: string; HolidayDescriptionThai: string }[]> {
+    const token = this.configService.get<string>('BOT_API_TOKEN');
+    if (!token) {
+      throw new InternalServerErrorException('BOT API Token is not configured.');
     }
 
     try {
@@ -106,8 +107,8 @@ export class PricesService {
         throw new InternalServerErrorException('BOT API URL is not configured.');
       }
       const response = await firstValueFrom(
-        this.httpService.get(BOT_API_URL, {
-          headers: { 'X-IBM-Client-Id': clientId },
+        this.httpService.get(`${BOT_API_URL}/?year=${year}`, {
+          headers: { 'Accept': 'application/json', 'Authorization': `${token}` },
         }),
       );
       return response.data.result.data;
