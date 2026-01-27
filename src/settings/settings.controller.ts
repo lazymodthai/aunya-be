@@ -3,11 +3,12 @@ import { ApiTags, ApiOperation, ApiParam, ApiBody, ApiOkResponse } from '@nestjs
 import { SettingsService, SettingKey } from './settings.service';
 import { UpdateSettingDto } from './dto/update-setting.dto';
 import { CreateSettingDto } from './dto/create-setting.dto';
+import { AdminOnly } from '@src/auth/decorators';
 
 @ApiTags('Settings')
 @Controller('settings')
 export class SettingsController {
-  constructor(private readonly settingsService: SettingsService) {}
+  constructor(private readonly settingsService: SettingsService) { }
 
   @Get()
   @ApiOperation({
@@ -41,6 +42,7 @@ export class SettingsController {
   }
 
   @Get('keys')
+  @AdminOnly()
   @ApiOperation({
     summary: 'Get available setting keys',
     description: 'ดึง keys ที่ใช้ได้ทั้งหมด',
@@ -69,6 +71,7 @@ export class SettingsController {
   }
 
   @Patch(':key')
+  @AdminOnly()
   @ApiOperation({
     summary: 'Update setting by key',
     description: 'อัปเดตค่า setting ตาม key',
@@ -92,6 +95,7 @@ export class SettingsController {
   }
 
   @Post()
+  @AdminOnly()
   @ApiOperation({
     summary: 'Create new setting',
     description: 'สร้าง setting ใหม่',

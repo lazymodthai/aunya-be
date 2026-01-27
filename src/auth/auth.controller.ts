@@ -232,6 +232,7 @@ export class AuthController {
   }
 
   @Post('/logout')
+  @UserOnly()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'User Logout',

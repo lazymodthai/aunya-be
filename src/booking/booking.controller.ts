@@ -20,19 +20,17 @@ import { ApiBody, ApiOperation, ApiParam, ApiQuery, ApiTags, ApiOkResponse, ApiU
 import { BookDto } from "./dto/book.dto";
 import { UpdateBookingStatusDto } from "./dto/update-booking-status.dto";
 import { BookingStatus } from "@/constants/booking.enum";
-import { UserOnly } from "@/auth/decorators";
+import { AdminOnly, UserOnly } from "@/auth/decorators";
 // import { FilesService } from "@src/files/files.service";
 
 @ApiTags("Booking")
 @Controller("booking")
 export class BookingController {
-  constructor(private readonly bookingService: BookingService, 
-   ) { }
+  constructor(private readonly bookingService: BookingService,
+  ) { }
 
 
   @Post("/book")
-  // @UseGuards(JwtAuthGuard)
-  // @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: "Book a room",
@@ -51,6 +49,7 @@ export class BookingController {
   }
 
   @Get("/dates")
+  @AdminOnly()
   @ApiOperation({
     summary: "Get all dates",
     description: "Get all dates",
@@ -61,6 +60,7 @@ export class BookingController {
   }
 
   @Get("/booked/all")
+  @AdminOnly()
   @ApiOperation({
     summary: "get all",
     description: "get all booked rooms with files (QR codes and payment slips)",
@@ -79,6 +79,7 @@ export class BookingController {
   }
 
   @Get("/booked")
+  @AdminOnly()
   @ApiOperation({
     summary: "Get booked rooms",
     description: "Get booked rooms",
@@ -89,6 +90,7 @@ export class BookingController {
   }
 
   @Get("/find")
+  @AdminOnly()
   @ApiOperation({
     summary: "Get booked data by reference code",
     description: "Retrieve booking information using reference code",
@@ -131,6 +133,7 @@ export class BookingController {
   }
 
   @Get("/find-by-phone")
+  @AdminOnly()
   @ApiOperation({
     summary: "Get booked data by phone number",
     description: "Retrieve booking information using phone number",
@@ -174,6 +177,7 @@ export class BookingController {
   }
 
   @Get("/find-by-date")
+  @AdminOnly()
   @ApiOperation({
     summary: "Get bookings by date",
     description: "Retrieve bookings that include the specified date",
@@ -275,6 +279,7 @@ export class BookingController {
   }
 
   @Patch(":id/status")
+  @AdminOnly()
   @ApiOperation({
     summary: "Update booking status by ID",
     description: "Update the status of a booking",

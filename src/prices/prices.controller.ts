@@ -8,12 +8,14 @@ import { UpdatePriceDto } from './dto/update-price.dto';
 import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
 import { ResetPriceDto } from './dto/reset-price.dto';
 import { CalculatePriceDto } from './dto/calculate-price.dto';
+import { AdminOnly } from '@src/auth/decorators';
 
 @Controller('prices')
 export class PricesController {
   constructor(private readonly pricesService: PricesService) { }
 
   @Post('generate')
+  @AdminOnly()
   @ApiOperation({
     summary: "Generate prices",
     description: "Generate prices for a room",
@@ -28,6 +30,7 @@ export class PricesController {
   }
 
   @Post('generate-discount-code')
+  @AdminOnly()
   @ApiOperation({
     summary: "Generate discount code",
     description: "Generate discount code",
@@ -51,6 +54,7 @@ export class PricesController {
   }
 
   @Patch(':id/price')
+  @AdminOnly()
   @ApiOperation({
     summary: "Update price by id",
     description: "Update price by id",
@@ -66,6 +70,7 @@ export class PricesController {
   }
 
   @Patch(':id/maintenance')
+  @AdminOnly()
   @ApiOperation({
     summary: "Update maintenance status by id",
     description: "Update maintenance status by id",
@@ -81,6 +86,7 @@ export class PricesController {
   }
 
   @Post('reset')
+  @AdminOnly()
   @ApiOperation({
     summary: "Reset prices by year and room",
     description: "ลบข้อมูลราคาทั้งหมดของห้องและปีที่ระบุ เพื่อ generate ใหม่",
@@ -95,6 +101,7 @@ export class PricesController {
   }
 
   @Get('discount-codes')
+  @AdminOnly()
   @ApiOperation({
     summary: "Get all discount codes",
     description: "ดึงข้อมูล discount codes ทั้งหมด",
