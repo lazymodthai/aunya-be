@@ -17,7 +17,7 @@ export class AuthService {
     @InjectRepository(SessionEntity)
     private readonly sessionsRepository: Repository<SessionEntity>,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   private hashToken(token: string): string {
     return crypto.createHash('sha256').update(token).digest('hex');
@@ -37,6 +37,14 @@ export class AuthService {
 
       if (existingUser) {
         throw new ConflictException('Email already exists');
+      }
+
+      const existingUserByPhoneNumber = await this.usersRepository.findOne({
+        where: { phoneNumber }
+      });
+
+      if (existingUserByPhoneNumber) {
+        throw new ConflictException('Phone number already exists');
       }
 
       const saltRounds = 10;

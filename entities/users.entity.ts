@@ -17,7 +17,7 @@ export class UserEntity {
   @Column()
   lastName: string;
 
-  @Column()
+  @Column({ unique: true })
   phoneNumber: string;
 
   @Column({ default: true })
