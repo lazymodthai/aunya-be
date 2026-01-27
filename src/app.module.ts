@@ -4,7 +4,6 @@ import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
-import { ObjectStorageModule } from './object-storage/object-storage.module';
 import { UploadedFileModule } from './uploaded-files/uploaded-file.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BookingModule } from './booking/booking.module';
@@ -40,7 +39,6 @@ import * as path from 'path';
       inject: [ConfigService],
     }),
     AuthModule,
-    ObjectStorageModule,
     UploadedFileModule,
     BookingModule,
     PricesModule,
