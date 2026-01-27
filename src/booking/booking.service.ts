@@ -12,6 +12,7 @@ import { BookingStatus } from "@/constants/booking.enum";
 import { BookingEntity } from "@/entities/booking.entity";
 import { PriceCalendarEntity } from "entities/price-calendar.entity";
 import { FilesService } from "../files/files.service";
+import { LineNotificationService } from "../line-notification/line-notification.service";
 
 @Injectable()
 export class BookingService {
@@ -21,6 +22,7 @@ export class BookingService {
     @InjectRepository(PriceCalendarEntity)
     private readonly pricesRepository: Repository<PriceCalendarEntity>,
     private readonly filesService: FilesService,
+    private readonly lineNotificationService: LineNotificationService,
   ) { }
 
   private generateRefCode(): string {
@@ -359,6 +361,24 @@ export class BookingService {
 
     booking.status = status;
     await this.bookingRepository.save(booking);
+
+    // ส่ง LINE notification เมื่อสถานะเปลี่ยนเป็น PENDING
+    if (status === BookingStatus.PENDING) {
+      this.filesService
+        .getFilesByRoomId(booking.refCode)
+        .then((files) => {
+          const slipUrls = files
+            .filter((f) => f.type !== 'qrcode')
+            .map((f) => f.fileUrl);
+          return this.lineNotificationService.sendBookingNotification(
+            booking,
+            slipUrls,
+          );
+        })
+        .catch((err) => {
+          console.error('LINE notification error:', err);
+        });
+    }
 
     // หากสถานะเปลี่ยนเป็น Confirmed ให้ยกเลิกรายการอื่นที่วันที่ซ้อนทับกัน
     if (status === BookingStatus.CONFIRMED) {
