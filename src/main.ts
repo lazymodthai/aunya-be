@@ -11,10 +11,21 @@ async function bootstrap() {
   });
 
   // Enable CORS with credentials support for frontend
+  const corsOrigin = process.env.CORS_ORIGIN;
+  const origins = corsOrigin
+    ? corsOrigin.split(',').map((o) => o.trim())
+    : ['http://localhost:8022', 'http://localhost:3000', 'http://localhost:5173'];
+
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:8022',
+    origin: origins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+    ],
     credentials: true,
   });
 
