@@ -21,6 +21,11 @@ export class PricesService {
   private readonly logger = new Logger(PricesService.name);
   private readonly uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+  private toDateString(date: Date): string {
+    const d = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+    return d.toISOString().split('T')[0];
+  }
+
   constructor(
     @InjectRepository(PriceCalendarEntity)
     private readonly priceCalendarRepository: Repository<PriceCalendarEntity>,
@@ -56,7 +61,7 @@ export class PricesService {
     const pricesToCreate: PriceCalendarEntity[] = [];
 
     for (let day = new Date(startDate); day <= endDate; day.setDate(day.getDate() + 1)) {
-      const currentDateStr = day.toISOString().split('T')[0];
+      const currentDateStr = this.toDateString(day);
       const dayOfWeek = day.getDay();
 
       let price: number;
@@ -345,7 +350,7 @@ export class PricesService {
     });
 
     const priceDetails = prices.map(price => ({
-      date: new Date(price.date).toISOString().split('T')[0],
+      date: this.toDateString(new Date(price.date)),
       price: Number(price.price),
     }));
 
