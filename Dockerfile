@@ -22,11 +22,14 @@ RUN yarn install --immutable
 # Copy source code
 COPY . .
 
-# Build the application using npx to run nest directly
+# Build the application
 RUN yarn run build
 
-# Expose port
-EXPOSE 3005
+# Verify the build output exists
+RUN ls -la dist/ && test -f dist/main.js
+
+# Expose port (default 3200, can be overridden)
+EXPOSE 3200
 
 # Start the server
 CMD ["node", "dist/main"]
