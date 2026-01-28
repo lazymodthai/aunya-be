@@ -13,6 +13,7 @@ import { FilesModule } from './files/files.module';
 import { CheckSlipModule } from './check-slip/check-slip.module';
 import { SettingsModule } from './settings/settings.module';
 import { TasksModule } from './tasks/tasks.module';
+import { GalleryModule } from './gallery/gallery.module';
 import * as path from 'path';
 
 @Module({
@@ -46,6 +47,7 @@ import * as path from 'path';
     CheckSlipModule,
     SettingsModule,
     TasksModule,
+    GalleryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
