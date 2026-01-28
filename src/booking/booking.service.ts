@@ -105,6 +105,10 @@ export class BookingService {
       phoneNumber: bookDto.phoneNumber,
       status: BookingStatus.PAYMENT,
       totalPrice: bookDto.totalPrice,
+      discount: bookDto.discount,
+      isOnlyDeposit: bookDto.isOnlyDeposit ?? false,
+      paidAmount: bookDto.paidAmount,
+      remainingAmount: bookDto.remainingAmount,
       roomId: bookDto.roomId,
       customerId: bookDto.customerId,
     });
@@ -348,7 +352,7 @@ export class BookingService {
     }
   }
 
-  async updateBookingStatus(id: string, status: BookingStatus): Promise<{ message: string }> {
+  async updateBookingStatus(id: string, status: BookingStatus, additionalPayment?: number): Promise<{ message: string }> {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(id)) {
       throw new BadRequestException(`ID ไม่ถูกต้อง: ${id} (ต้องเป็น UUID)`);
@@ -360,6 +364,12 @@ export class BookingService {
     }
 
     booking.status = status;
+
+    if (additionalPayment != null && additionalPayment > 0) {
+      booking.paidAmount = (booking.paidAmount ?? 0) + additionalPayment;
+      booking.remainingAmount = Math.max((booking.remainingAmount ?? 0) - additionalPayment, 0);
+    }
+
     await this.bookingRepository.save(booking);
 
     // ส่ง LINE notification เมื่อสถานะเปลี่ยนเป็น PENDING

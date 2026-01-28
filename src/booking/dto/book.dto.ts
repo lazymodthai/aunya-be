@@ -1,4 +1,4 @@
-import { IsDateString, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsDateString, IsNumber, IsOptional, IsString } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
 
@@ -62,4 +62,44 @@ export class BookDto {
   @IsString()
   @IsOptional()
   customerId?: string;
+
+  @ApiProperty({
+    type: Number,
+    required: false,
+    description: 'ส่วนลด (บาท)',
+  })
+  @IsNumber()
+  @IsOptional()
+  @Transform(({ value }) => value === 'null' ? null : value)
+  discount?: number;
+
+  @ApiProperty({
+    type: Boolean,
+    required: false,
+    description: 'จ่ายเฉพาะมัดจำ (true = มัดจำ, false = เต็มจำนวน)',
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isOnlyDeposit?: boolean;
+
+  @ApiProperty({
+    type: Number,
+    required: false,
+    description: 'จำนวนเงินที่จ่ายแล้ว (บาท)',
+  })
+  @IsNumber()
+  @IsOptional()
+  @Transform(({ value }) => value === 'null' ? null : value)
+  paidAmount?: number;
+
+  @ApiProperty({
+    type: Number,
+    required: false,
+    description: 'จำนวนเงินที่ยังค้างจ่าย (บาท)',
+  })
+  @IsNumber()
+  @IsOptional()
+  @Transform(({ value }) => value === 'null' ? null : value)
+  remainingAmount?: number;
 }

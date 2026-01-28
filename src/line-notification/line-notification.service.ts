@@ -53,6 +53,8 @@ export class LineNotificationService {
       });
     };
 
+    const fmt = (n?: number) => n?.toLocaleString() ?? '-';
+
     const textMessage = [
       `📋 การจองใหม่รอตรวจสอบ`,
       ``,
@@ -65,7 +67,16 @@ export class LineNotificationService {
       booking.additionGuestNumber
         ? `🛏️ เตียงเสริม: ${booking.additionGuestNumber}`
         : null,
-      `💰 ราคารวม: ${booking.totalPrice?.toLocaleString() ?? '-'} บาท`,
+      `💰 ราคารวม: ${fmt(booking.totalPrice)} บาท`,
+      booking.discount
+        ? `🏷️ ส่วนลด: -${fmt(booking.discount)} บาท`
+        : null,
+      booking.isOnlyDeposit
+        ? `💳 ชำระ: มัดจำ ${fmt(booking.paidAmount)} บาท`
+        : `💳 ชำระ: เต็มจำนวน ${fmt(booking.paidAmount)} บาท`,
+      booking.remainingAmount
+        ? `📌 ค้างจ่าย: ${fmt(booking.remainingAmount)} บาท`
+        : null,
     ]
       .filter(Boolean)
       .join('\n');

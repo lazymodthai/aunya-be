@@ -36,6 +36,18 @@ export class BookingEntity {
   @Column({ nullable: true })
   totalPrice: number;
 
+  @Column({ nullable: true })
+  discount: number;
+
+  @Column({ default: false })
+  isOnlyDeposit: boolean;
+
+  @Column({ nullable: true })
+  paidAmount: number;
+
+  @Column({ nullable: true })
+  remainingAmount: number;
+
   @Column({
     type: 'enum',
     enum: BookingStatus,

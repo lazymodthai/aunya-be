@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEnum } from "class-validator";
+import { IsEnum, IsNumber, IsOptional } from "class-validator";
 import { BookingStatus } from "@/constants/booking.enum";
 
 export class UpdateBookingStatusDto {
@@ -10,4 +10,14 @@ export class UpdateBookingStatusDto {
   })
   @IsEnum(BookingStatus)
   status: BookingStatus;
+
+  @ApiProperty({
+    type: Number,
+    required: false,
+    description: "จำนวนเงินที่จ่ายเพิ่ม (บาท) — ใช้สำหรับจ่ายส่วนที่เหลือ",
+    example: 3000,
+  })
+  @IsNumber()
+  @IsOptional()
+  additionalPayment?: number;
 }
