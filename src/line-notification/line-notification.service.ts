@@ -63,7 +63,10 @@ export class LineNotificationService {
       `📱 เบอร์โทร: ${booking.phoneNumber}`,
       `📅 เช็คอิน: ${formatDate(booking.checkinDate)}`,
       `📅 เช็คเอาท์: ${formatDate(booking.checkoutDate)}`,
-      `👥 ผู้เข้าพัก: ${booking.guestNumber} คน`,
+      `👥 ผู้ใหญ่: ${booking.guestNumber} คน`,
+      booking.childrenNumber
+        ? `👶 เด็ก: ${booking.childrenNumber} คน`
+        : null,
       booking.additionGuestNumber
         ? `🛏️ เตียงเสริม: ${booking.additionGuestNumber}`
         : null,

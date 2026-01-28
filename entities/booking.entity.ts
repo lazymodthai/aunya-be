@@ -23,6 +23,9 @@ export class BookingEntity {
   @Column()
   guestNumber: number;
 
+  @Column({ default: 0 })
+  childrenNumber: number;
+
   @Column({ nullable: true })
   @Optional()
   additionGuestNumber: number;

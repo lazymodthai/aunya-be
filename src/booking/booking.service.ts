@@ -100,6 +100,7 @@ export class BookingService {
       checkinDate: bookDto.checkinDate,
       checkoutDate: bookDto.checkoutDate,
       guestNumber: bookDto.guestNumber,
+      childrenNumber: bookDto.childrenNumber ?? 0,
       additionGuestNumber: bookDto.additionGuestNumber,
       name: bookDto.name,
       phoneNumber: bookDto.phoneNumber,

@@ -17,12 +17,25 @@ export class BookDto {
 
   @ApiProperty({
     type: Number,
+    description: 'จำนวนผู้ใหญ่',
   })
   @IsNumber()
   guestNumber: number;
 
   @ApiProperty({
     type: Number,
+    required: false,
+    description: 'จำนวนเด็ก',
+    default: 0,
+  })
+  @IsNumber()
+  @IsOptional()
+  childrenNumber?: number;
+
+  @ApiProperty({
+    type: Number,
+    required: false,
+    description: 'จำนวนเตียงเสริม',
   })
   @IsNumber()
   @IsOptional()
