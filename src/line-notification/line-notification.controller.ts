@@ -72,6 +72,8 @@ export class LineNotificationController {
     @Headers('x-line-signature') signature: string,
     @Body() body: any,
   ) {
+    this.logger.log(`Webhook received: ${JSON.stringify(body)}`);
+
     // Verify signature
     const rawBody = req.rawBody?.toString() ?? JSON.stringify(body);
     if (!this.lineNotificationService.verifySignature(rawBody, signature)) {
@@ -79,9 +81,14 @@ export class LineNotificationController {
       return { status: 'invalid signature' };
     }
 
+    this.logger.log('Signature verified');
+
     // Process events
     const events = body.events ?? [];
+    this.logger.log(`Processing ${events.length} events`);
+
     for (const event of events) {
+      this.logger.log(`Event type: ${event.type}`);
       if (event.type === 'postback') {
         await this.handlePostback(event);
       }
@@ -92,14 +99,24 @@ export class LineNotificationController {
 
   private async handlePostback(event: any): Promise<void> {
     const data = event.postback?.data;
-    if (!data) return;
+    this.logger.log(`Postback data: ${data}`);
+
+    if (!data) {
+      this.logger.warn('No postback data');
+      return;
+    }
 
     // Parse postback data: action=confirm&bookingId=xxx
     const params = new URLSearchParams(data);
     const action = params.get('action');
     const bookingId = params.get('bookingId');
 
-    if (!action || !bookingId) return;
+    this.logger.log(`Action: ${action}, BookingId: ${bookingId}`);
+
+    if (!action || !bookingId) {
+      this.logger.warn('Missing action or bookingId');
+      return;
+    }
 
     try {
       let replyText = '';
