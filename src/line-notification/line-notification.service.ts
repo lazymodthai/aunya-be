@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { BookingEntity } from '@/entities/booking.entity';
 import { SettingsService, SettingKey } from '../settings/settings.service';
 import * as crypto from 'crypto';
+// 
 
 @Injectable()
 export class LineNotificationService {
@@ -16,7 +17,7 @@ export class LineNotificationService {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
     private readonly settingsService: SettingsService,
-  ) {}
+  ) { }
 
   verifySignature(body: string, signature: string): boolean {
     const channelSecret = this.configService.get<string>('LINE_CHANNEL_SECRET');
