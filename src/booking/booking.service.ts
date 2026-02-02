@@ -4,6 +4,8 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Between, In, LessThan, LessThanOrEqual, MoreThan, Not, Repository } from "typeorm";
@@ -22,6 +24,7 @@ export class BookingService {
     @InjectRepository(PriceCalendarEntity)
     private readonly pricesRepository: Repository<PriceCalendarEntity>,
     private readonly filesService: FilesService,
+    @Inject(forwardRef(() => LineNotificationService))
     private readonly lineNotificationService: LineNotificationService,
   ) { }
 

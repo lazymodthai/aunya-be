@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { BookingService } from './booking.service';
 import { BookingController } from './booking.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -12,7 +12,7 @@ import { LineNotificationModule } from '../line-notification/line-notification.m
   imports: [
     TypeOrmModule.forFeature([BookingEntity, RoomEntity, PriceCalendarEntity]),
     FilesModule,
-    LineNotificationModule,
+    forwardRef(() => LineNotificationModule),
   ],
   controllers: [BookingController],
   providers: [BookingService],
