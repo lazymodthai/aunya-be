@@ -61,6 +61,7 @@ jobs:
             echo "SLIP_VERIFICATION_SECRET_KEY=${{ secrets.SLIP_VERIFICATION_SECRET_KEY }}" >> .env
             echo "SLIP_VERIFICATION_API_URL=${{ secrets.SLIP_VERIFICATION_API_URL }}" >> .env
             echo "LINE_CHANNEL_ACCESS_TOKEN=${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}" >> .env
+            echo "LINE_CHANNEL_SECRET=${{ secrets.LINE_CHANNEL_SECRET }}" >> .env
             echo "LINE_GROUP_ID=${{ secrets.LINE_GROUP_ID }}" >> .env
             docker compose pull
             docker compose up -d
