@@ -133,21 +133,13 @@ export class FilesController {
           );
           slipVerificationResult = response.data;
         } catch (apiError) {
-          throw new HttpException(
-            "การตรวจสอบสลีปล้มเหลว QR Code ไม่ถูกต้องหรือไม่ใช่สลีปการโอนเงิน",
-            HttpStatus.BAD_REQUEST,
-          );
+          console.log(apiError, "apiError");
         }
       } else {
-        throw new HttpException(
-          "ไม่สามารถตรวจสอบสลีปได้ ตรวจสอบ api key",
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
+        console.log("ไม่สามารถตรวจสอบสลีปได้ ตรวจสอบ api key");
       }
     } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
+      console.log(error, "error");
     }
 
     if (slipVerificationResult && slipVerificationResult.data) {
