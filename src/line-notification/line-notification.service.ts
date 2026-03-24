@@ -3,6 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { BookingEntity } from '@/entities/booking.entity';
+import { BookingStatus } from '@/constants/booking.enum';
 import { SettingsService, SettingKey } from '../settings/settings.service';
 import * as crypto from 'crypto';
 
@@ -325,6 +326,48 @@ export class LineNotificationService {
         message: 'ส่งข้อความไม่สำเร็จ',
         error: errorData,
       };
+    }
+  }
+
+  async sendStatusUpdateNotification(
+    booking: BookingEntity,
+  ): Promise<void> {
+    const token = this.configService.get<string>('LINE_CHANNEL_ACCESS_TOKEN');
+    const groupId = this.configService.get<string>('LINE_GROUP_ID');
+
+    if (!token || !groupId) return;
+
+    // Determine status text
+    let statusText = '';
+    if (booking.status === BookingStatus.CONFIRMED) {
+      statusText = '✅ ยืนยันการจองเรียบร้อยแล้ว';
+    } else if (booking.status === BookingStatus.CANCELLED) {
+      statusText = '❌ ปฏิเสธการจองเรียบร้อยแล้ว';
+    } else {
+      statusText = `🔔 อัปเดตสถานะ: ${booking.status}`;
+    }
+
+    let message = `${statusText}\n🔖 Ref: ${booking.refCode}\n👤 คุณ${booking.name}`;
+
+    if (booking.remark) {
+      message += `\n📝 หมายเหตุ: ${booking.remark}`;
+    }
+
+    try {
+      await firstValueFrom(
+        this.httpService.post(
+          this.pushUrl,
+          { to: groupId, messages: [{ type: 'text', text: message }] },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        ),
+      );
+    } catch (error) {
+      this.logger.error(`Failed to send status update notification`, error?.response?.data ?? error.message);
     }
   }
 }

@@ -381,6 +381,15 @@ export class BookingService {
 
     await this.bookingRepository.save(booking);
 
+    // ส่ง LINE notification แจ้งเตือนการอัปเดตสถานะและหมายเหตุ
+    if (status === BookingStatus.CONFIRMED || status === BookingStatus.CANCELLED) {
+      this.lineNotificationService
+        .sendStatusUpdateNotification(booking)
+        .catch((err) => {
+          console.error('LINE status update notification error:', err);
+        });
+    }
+
     // ส่ง LINE notification เมื่อสถานะเปลี่ยนเป็น PENDING
     if (status === BookingStatus.PENDING) {
       this.filesService
