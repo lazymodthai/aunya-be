@@ -82,8 +82,9 @@ export class GalleryController {
         }),
       );
     } catch (error) {
+      console.error("S3 Upload Error in Gallery:", error);
       throw new HttpException(
-        'อัปโหลดไฟล์ไปยัง S3 ล้มเหลว',
+        "อัปโหลดไฟล์ไปยัง S3 ล้มเหลว",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

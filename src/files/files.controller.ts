@@ -85,6 +85,7 @@ export class FilesController {
         }),
       );
     } catch (error) {
+      console.error("S3 Upload Error:", error);
       throw new HttpException(
         "อัปโหลดไฟล์ไปยัง S3 ล้มเหลว",
         HttpStatus.INTERNAL_SERVER_ERROR,
