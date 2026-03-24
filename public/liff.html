@@ -93,9 +93,14 @@
   </div>
 
   <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const bookingId = urlParams.get('bookingId');
+    const currentUrl = window.location.href;
+    const urlParams = new URLSearchParams(window.location.search || (window.location.hash.includes('?') ? window.location.hash.split('?')[1] : ''));
+    let bookingId = urlParams.get('bookingId');
     const action = urlParams.get('action'); // 'confirm' or 'reject'
+
+    if (!bookingId) {
+      alert('Debug: bookingId not found in URL.\nCurrent URL: ' + currentUrl);
+    }
 
     // UI Setup
     const titleEl = document.getElementById('title');
