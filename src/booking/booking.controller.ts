@@ -21,6 +21,7 @@ import { BookDto } from "./dto/book.dto";
 import { UpdateBookingStatusDto } from "./dto/update-booking-status.dto";
 import { BookingStatus } from "@/constants/booking.enum";
 import { AdminOnly, UserOnly } from "@/auth/decorators";
+import { UpdateBookingRemarkDto } from "./dto/update-booking-remark.dto";
 // import { FilesService } from "@src/files/files.service";
 
 @ApiTags("Booking")
@@ -313,5 +314,33 @@ export class BookingController {
     @Body() updateBookingStatusDto: UpdateBookingStatusDto
   ) {
     return this.bookingService.updateBookingStatus(id, updateBookingStatusDto.status, updateBookingStatusDto.additionalPayment);
+  }
+
+  @Patch(":id/remark")
+  @ApiOperation({
+    summary: "Update booking remark by ID",
+    description: "Update the remark of a booking",
+  })
+  @ApiParam({ name: "id", description: "Booking ID (UUID)" })
+  @ApiBody({
+    type: UpdateBookingRemarkDto,
+    description: "New booking remark",
+  })
+  @ApiOkResponse({
+    description: "Booking remark updated successfully",
+    schema: {
+      type: "object",
+      properties: {
+        message: { type: "string", example: "อัปเดตหมายเหตุการจองสำเร็จ" },
+      },
+    },
+  })
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  async updateBookingRemark(
+    @Param("id") id: string,
+    @Body() updateBookingRemarkDto: UpdateBookingRemarkDto
+  ) {
+    return this.bookingService.updateBookingRemark(id, updateBookingRemarkDto.remark);
   }
 }

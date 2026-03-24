@@ -180,6 +180,12 @@ export class LineNotificationService {
       );
     }
 
+    if (booking.remark) {
+      optionalBox.contents.push(
+        this.createFlexRow('📝 หมายเหตุ', booking.remark),
+      );
+    }
+
     return {
       type: 'flex',
       altText: `การจองใหม่: ${booking.refCode}`,
