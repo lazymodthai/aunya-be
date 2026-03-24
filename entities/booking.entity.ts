@@ -61,6 +61,9 @@ export class BookingEntity {
   @Column({ nullable: true })
   remark: string;
 
+  @Column({ default: 0 })
+  additionTowel: number;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 

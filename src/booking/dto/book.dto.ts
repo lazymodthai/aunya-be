@@ -117,6 +117,17 @@ export class BookDto {
   remainingAmount?: number;
 
   @ApiProperty({
+    type: Number,
+    required: false,
+    description: 'จำนวนผ้าเช็ดตัวเสริม',
+    default: 0,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Transform(({ value }) => value === 'null' ? null : value)
+  additionTowel?: number;
+
+  @ApiProperty({
     type: String,
     required: false,
     description: 'หมายเหตุ',

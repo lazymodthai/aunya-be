@@ -105,6 +105,7 @@ export class BookingService {
       guestNumber: bookDto.guestNumber,
       childrenNumber: bookDto.childrenNumber ?? 0,
       additionGuestNumber: bookDto.additionGuestNumber,
+      additionTowel: bookDto.additionTowel ?? 0,
       name: bookDto.name,
       phoneNumber: bookDto.phoneNumber,
       status: BookingStatus.PAYMENT,
