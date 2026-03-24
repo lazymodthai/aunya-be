@@ -217,9 +217,10 @@ export class LineNotificationService {
               style: 'primary',
               color: '#ef4444',
               action: {
-                type: 'uri',
+                type: 'postback',
                 label: '✗ ปฏิเสธ',
-                uri: `https://liff.line.me/${this.configService.get('LINE_LIFF_ID')}?bookingId=${booking.id}&action=reject&liffId=${this.configService.get('LINE_LIFF_ID')}`,
+                data: `action=reject&bookingId=${booking.id}`,
+                displayText: `ปฏิเสธการจอง ${booking.refCode}`,
               },
             },
           ],
