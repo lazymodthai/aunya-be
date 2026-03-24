@@ -63,6 +63,7 @@ jobs:
             echo "LINE_CHANNEL_ACCESS_TOKEN=${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}" >> .env
             echo "LINE_CHANNEL_SECRET=${{ secrets.LINE_CHANNEL_SECRET }}" >> .env
             echo "LINE_GROUP_ID=${{ secrets.LINE_GROUP_ID }}" >> .env
+            echo "LINE_LIFF_ID=${{ secrets.LINE_LIFF_ID }}" >> .env
             docker compose pull
             docker compose up -d
             docker image prune -af --filter "until=72h"
