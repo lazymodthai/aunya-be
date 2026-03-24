@@ -93,10 +93,30 @@
   </div>
 
   <script>
+    function getParam(name) {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has(name)) return urlParams.get(name);
+      
+      const hash = window.location.hash;
+      if (hash.includes('?')) {
+        const hashParams = new URLSearchParams(hash.split('?')[1]);
+        if (hashParams.has(name)) return hashParams.get(name);
+      }
+      
+      const liffState = urlParams.get('liff.state');
+      if (liffState) {
+        // Decode and parse liff.state which often looks like "?param=value"
+        const decodedState = decodeURIComponent(liffState);
+        const stateParams = new URLSearchParams(decodedState.startsWith('?') ? decodedState : '?' + decodedState);
+        if (stateParams.has(name)) return stateParams.get(name);
+      }
+      return null;
+    }
+
     const currentUrl = window.location.href;
-    const urlParams = new URLSearchParams(window.location.search || (window.location.hash.includes('?') ? window.location.hash.split('?')[1] : ''));
-    let bookingId = urlParams.get('bookingId');
-    const action = urlParams.get('action'); // 'confirm' or 'reject'
+    const bookingId = getParam('bookingId');
+    const action = getParam('action');
+    const liffId = getParam('liffId') || "YOUR_LIFF_ID_HERE";
 
     if (!bookingId) {
       alert('Debug: bookingId not found in URL.\nCurrent URL: ' + currentUrl);
