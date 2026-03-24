@@ -207,10 +207,9 @@ export class LineNotificationService {
               style: 'primary',
               color: '#22c55e',
               action: {
-                type: 'postback',
+                type: 'uri',
                 label: '✓ ยืนยัน',
-                data: `action=confirm&bookingId=${booking.id}`,
-                displayText: `ยืนยันการจอง ${booking.refCode}`,
+                uri: `https://liff.line.me/${this.configService.get('LINE_LIFF_ID')}?bookingId=${booking.id}&action=confirm&liffId=${this.configService.get('LINE_LIFF_ID')}`,
               },
             },
             {
@@ -218,10 +217,9 @@ export class LineNotificationService {
               style: 'primary',
               color: '#ef4444',
               action: {
-                type: 'postback',
+                type: 'uri',
                 label: '✗ ปฏิเสธ',
-                data: `action=reject&bookingId=${booking.id}`,
-                displayText: `ปฏิเสธการจอง ${booking.refCode}`,
+                uri: `https://liff.line.me/${this.configService.get('LINE_LIFF_ID')}?bookingId=${booking.id}&action=reject&liffId=${this.configService.get('LINE_LIFF_ID')}`,
               },
             },
           ],

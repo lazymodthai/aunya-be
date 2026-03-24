@@ -313,7 +313,12 @@ export class BookingController {
     @Param("id") id: string,
     @Body() updateBookingStatusDto: UpdateBookingStatusDto
   ) {
-    return this.bookingService.updateBookingStatus(id, updateBookingStatusDto.status, updateBookingStatusDto.additionalPayment);
+    return this.bookingService.updateBookingStatus(
+      id,
+      updateBookingStatusDto.status,
+      updateBookingStatusDto.additionalPayment,
+      updateBookingStatusDto.remark
+    );
   }
 
   @Patch(":id/remark")
