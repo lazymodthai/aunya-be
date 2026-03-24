@@ -50,7 +50,7 @@ import * as path from 'path';
     TasksModule,
     GalleryModule,
     ServeStaticModule.forRoot({
-      rootPath: path.join(__dirname, '..', 'public'),
+      rootPath: path.join(process.cwd(), 'public'),
       serveRoot: '/public',
     }),
   ],
