@@ -115,4 +115,13 @@ export class BookDto {
   @IsOptional()
   @Transform(({ value }) => value === 'null' ? null : value)
   remainingAmount?: number;
+
+  @ApiProperty({
+    type: String,
+    required: false,
+    description: 'หมายเหตุ',
+  })
+  @IsString()
+  @IsOptional()
+  remark?: string;
 }

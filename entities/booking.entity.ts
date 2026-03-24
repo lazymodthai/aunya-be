@@ -58,6 +58,9 @@ export class BookingEntity {
   })
   status: BookingStatus;
 
+  @Column({ nullable: true })
+  remark: string;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Remark - Aunya</title>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f4f7f6;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+    h2 {
+      margin-top: 0;
+      color: #333;
+      font-size: 1.5rem;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .status-confirm { background: #dcfce7; color: #166534; }
+    .status-reject { background: #fee2e2; color: #991b1b; }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #666;
+    }
+    textarea {
+      width: 100%;
+      height: 120px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 1rem;
+      resize: vertical;
+      margin-bottom: 20px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      background-color: #06c755;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:active {
+      background-color: #05a848;
+    }
+    button:disabled {
+      background-color: #ccc;
+    }
+    #loading {
+      color: #666;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 id="title">ยืนยันการจอง</h2>
+    <div id="statusBadge" class="status-badge"></div>
+    
+    <label for="remark">หมายเหตุ (เลือกใส่ได้ตามต้องการ):</label>
+    <textarea id="remark" placeholder="ไม่ต้องใส่ก็ได้..."></textarea>
+    
+    <button id="submitBtn" onclick="submitData()">บันทึกข้อมูล</button>
+    <div id="loading" style="display:none;">กำลังประมวลผล...</div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const bookingId = urlParams.get('bookingId');
+    const action = urlParams.get('action'); // 'confirm' or 'reject'
+
+    // UI Setup
+    const titleEl = document.getElementById('title');
+    const badgeEl = document.getElementById('statusBadge');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    if (action === 'reject') {
+      titleEl.innerText = 'ปฏิเสธการจอง';
+      badgeEl.innerText = '✗ ปฏิเสธ (CANCELLED)';
+      badgeEl.className = 'status-badge status-reject';
+      submitBtn.style.backgroundColor = '#ef4444';
+    } else {
+      titleEl.innerText = 'ยืนยันการจอง';
+      badgeEl.innerText = '✓ ยืนยัน (CONFIRMED)';
+      badgeEl.className = 'status-badge status-confirm';
+    }
+
+    async function initLiff() {
+      try {
+        const liffId = urlParams.get('liffId') || "YOUR_LIFF_ID_HERE";
+        await liff.init({ liffId: liffId });
+        if (!liff.isLoggedIn()) {
+          liff.login();
+        }
+      } catch (err) {
+        console.error('LIFF Init error', err);
+      }
+    }
+
+    async function submitData() {
+      const remarkText = document.getElementById('remark').value;
+      const status = action === 'reject' ? 'CANCELLED' : 'CONFIRMED';
+      
+      document.getElementById('loading').style.display = 'block';
+      submitBtn.disabled = true;
+
+      try {
+        const response = await fetch(`/booking/${bookingId}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            status: status,
+            remark: remarkText
+          })
+        });
+
+        if (response.ok) {
+          liff.closeWindow();
+        } else {
+          alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        }
+      } catch (err) {
+        alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
+      } finally {
+        document.getElementById('loading').style.display = 'none';
+        submitBtn.disabled = false;
+      }
+    }
+
+    initLiff();
+  </script>
+</body>
+</html>

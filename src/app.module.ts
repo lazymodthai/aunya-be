@@ -14,6 +14,7 @@ import { CheckSlipModule } from './check-slip/check-slip.module';
 import { SettingsModule } from './settings/settings.module';
 import { TasksModule } from './tasks/tasks.module';
 import { GalleryModule } from './gallery/gallery.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import * as path from 'path';
 
 @Module({
@@ -48,6 +49,10 @@ import * as path from 'path';
     SettingsModule,
     TasksModule,
     GalleryModule,
+    ServeStaticModule.forRoot({
+      rootPath: path.join(__dirname, '..', 'public'),
+      serveRoot: '/public',
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],

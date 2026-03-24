@@ -115,6 +115,7 @@ export class BookingService {
       remainingAmount: bookDto.remainingAmount,
       roomId: bookDto.roomId,
       customerId: bookDto.customerId,
+      remark: bookDto.remark,
     });
 
     const savedBooking = await this.bookingRepository.save(booking);
@@ -356,7 +357,7 @@ export class BookingService {
     }
   }
 
-  async updateBookingStatus(id: string, status: BookingStatus, additionalPayment?: number): Promise<{ message: string }> {
+  async updateBookingStatus(id: string, status: BookingStatus, additionalPayment?: number, remark?: string): Promise<{ message: string }> {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(id)) {
       throw new BadRequestException(`ID ไม่ถูกต้อง: ${id} (ต้องเป็น UUID)`);
@@ -372,6 +373,10 @@ export class BookingService {
     if (additionalPayment != null && additionalPayment > 0) {
       booking.paidAmount = (booking.paidAmount ?? 0) + additionalPayment;
       booking.remainingAmount = Math.max((booking.remainingAmount ?? 0) - additionalPayment, 0);
+    }
+
+    if (remark) {
+      booking.remark = remark;
     }
 
     await this.bookingRepository.save(booking);
@@ -409,5 +414,23 @@ export class BookingService {
     }
 
     return { message: "อัปเดตสถานะการจองสำเร็จ" };
+  }
+
+  async updateBookingRemark(id: string, remark: string): Promise<{ message: string }> {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      throw new BadRequestException(`ID ไม่ถูกต้อง: ${id} (ต้องเป็น UUID)`);
+    }
+
+    const booking = await this.bookingRepository.findOne({ where: { id } });
+    if (!booking) {
+      throw new NotFoundException(`ไม่พบการจอง ID: ${id}`);
+    }
+
+    booking.remark = remark;
+
+    await this.bookingRepository.save(booking);
+
+    return { message: "อัปเดตหมายเหตุการจองสำเร็จ" };
   }
 }
