@@ -133,7 +133,7 @@
       submitBtn.disabled = true;
 
       try {
-        const response = await fetch(`/booking/${bookingId}/status`, {
+        const response = await fetch(`${window.location.origin}/booking/${bookingId}/status`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -147,10 +147,11 @@
         if (response.ok) {
           liff.closeWindow();
         } else {
-          alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+          const errorData = await response.json();
+          alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + (errorData.message || JSON.stringify(errorData)));
         }
       } catch (err) {
-        alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
+        alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้: ' + err.message);
       } finally {
         document.getElementById('loading').style.display = 'none';
         submitBtn.disabled = false;
