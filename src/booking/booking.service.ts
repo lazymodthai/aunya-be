@@ -16,6 +16,8 @@ import { PriceCalendarEntity } from "entities/price-calendar.entity";
 import { FilesService } from "../files/files.service";
 import { LineNotificationService } from "../line-notification/line-notification.service";
 
+import { SettingsService, SettingKey } from "../settings/settings.service";
+
 @Injectable()
 export class BookingService {
   constructor(
@@ -26,6 +28,7 @@ export class BookingService {
     private readonly filesService: FilesService,
     @Inject(forwardRef(() => LineNotificationService))
     private readonly lineNotificationService: LineNotificationService,
+    private readonly settingsService: SettingsService,
   ) { }
 
   private generateRefCode(): string {
@@ -443,4 +446,96 @@ export class BookingService {
 
     return { message: "อัปเดตหมายเหตุการจองสำเร็จ" };
   }
+
+  async getSummary(year?: number) {
+    const targetYear = year || new Date().getFullYear();
+    const startDate = new Date(targetYear, 0, 1);
+    const endDate = new Date(targetYear, 11, 31, 23, 59, 59);
+
+    const [extraBedPrice, towelPrice] = await Promise.all([
+      this.settingsService.getSettingAsNumber(SettingKey.EXTRA_BED_PRICE),
+      this.settingsService.getSettingAsNumber(SettingKey.TOWEL_PRICE),
+    ]);
+
+    const bookings = await this.bookingRepository.find({
+      where: {
+        createdAt: Between(startDate, endDate),
+      },
+    });
+
+    const initSummary = () => ({
+      revenue: 0,
+      rentRevenue: 0,
+      extraBedRevenue: 0,
+      extraTowelRevenue: 0,
+      discountUsed: 0,
+      guestCount: 0,
+      childrenCount: 0,
+      bookingCount: 0,
+      potentialRevenue: 0,
+    });
+
+    const monthly = Array.from({ length: 12 }, (_, i) => ({
+      month: i + 1,
+      ...initSummary(),
+    }));
+
+    const yearly = initSummary();
+
+    const successStatuses = [
+      BookingStatus.CONFIRMED,
+      BookingStatus.CHECKED_IN,
+      BookingStatus.CHECKED_OUT,
+    ];
+
+    bookings.forEach((booking) => {
+      const bookingDate = new Date(booking.createdAt);
+      const month = bookingDate.getMonth();
+      const isSuccess = successStatuses.includes(booking.status);
+
+      const ebRev = (booking.additionGuestNumber || 0) * extraBedPrice;
+      const towelRev = (booking.additionTowel || 0) * towelPrice;
+      const discount = booking.discount || 0;
+      const gross = (booking.totalPrice || 0) + discount;
+      const rentRev = gross - ebRev - towelRev;
+
+      // Potential revenue includes all bookings
+      monthly[month].potentialRevenue += gross;
+      yearly.potentialRevenue += gross;
+
+      if (isSuccess) {
+        const stats = {
+          revenue: booking.totalPrice || 0,
+          rentRevenue: rentRev,
+          extraBedRevenue: ebRev,
+          extraTowelRevenue: towelRev,
+          discountUsed: discount,
+          guestCount: (booking.guestNumber || 0) + (booking.additionGuestNumber || 0),
+          childrenCount: booking.childrenNumber || 0,
+          bookingCount: 1,
+        };
+
+        // Update monthly
+        Object.keys(stats).forEach(key => {
+          monthly[month][key] += stats[key];
+        });
+
+        // Update yearly
+        Object.keys(stats).forEach(key => {
+          yearly[key] += stats[key];
+        });
+      }
+    });
+
+    const now = new Date();
+    const currentMonth = targetYear === now.getFullYear() ? monthly[now.getMonth()] : null;
+
+    return {
+      year: targetYear,
+      monthly,
+      yearly,
+      currentMonth,
+    };
+  }
 }
+

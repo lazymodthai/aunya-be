@@ -348,4 +348,22 @@ export class BookingController {
   ) {
     return this.bookingService.updateBookingRemark(id, updateBookingRemarkDto.remark);
   }
+
+  @Get("/summary")
+  @AdminOnly()
+  @ApiOperation({
+    summary: "Get booking summary",
+    description: "Get detailed summary of bookings, revenue, and guest counts by month and year",
+  })
+  @ApiQuery({
+    name: "year",
+    description: "Year to get summary for (optional, defaults to current year)",
+    required: false,
+    type: Number,
+  })
+  @HttpCode(HttpStatus.OK)
+  async getSummary(@Query("year") year?: string) {
+    const yearNum = year ? parseInt(year, 10) : undefined;
+    return await this.bookingService.getSummary(yearNum);
+  }
 }
