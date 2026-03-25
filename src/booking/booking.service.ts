@@ -115,6 +115,7 @@ export class BookingService {
       totalPrice: bookDto.totalPrice,
       discount: bookDto.discount,
       isOnlyDeposit: bookDto.isOnlyDeposit ?? false,
+      depositAmount: bookDto.isOnlyDeposit ? (bookDto.paidAmount ?? 0) : 0,
       paidAmount: bookDto.paidAmount,
       remainingAmount: bookDto.remainingAmount,
       roomId: bookDto.roomId,
@@ -496,15 +497,17 @@ export class BookingService {
       const bookingNightCount = Math.max(1, Math.ceil((checkout.getTime() - checkin.getTime()) / (1000 * 60 * 60 * 24)));
       const isSuccess = successStatuses.includes(booking.status);
 
+      const deposit = booking.depositAmount || 0;
+      const actualPrice = (booking.totalPrice || 0) - deposit;
       const ebRev = (booking.additionGuestNumber || 0) * extraBedPrice;
       const towelRev = (booking.additionTowel || 0) * towelPrice;
       const discount = booking.discount || 0;
-      const gross = (booking.totalPrice || 0) + discount;
+      const gross = actualPrice + discount;
       const rentRev = gross - ebRev - towelRev;
 
       // Stats per night to be split across months
       const perNightStats = {
-        revenue: (booking.totalPrice || 0) / bookingNightCount,
+        revenue: actualPrice / bookingNightCount,
         rentRevenue: rentRev / bookingNightCount,
         extraBedRevenue: ebRev / bookingNightCount,
         extraTowelRevenue: towelRev / bookingNightCount,
@@ -519,20 +522,20 @@ export class BookingService {
       for (let d = new Date(checkin); d < checkout; d.setDate(d.getDate() + 1)) {
         // Only count nights within the target year
         if (d >= startDate && d <= endDate) {
-          const m = d.getUTCMonth();
-          monthsTouched.add(m);
+          const month = d.getMonth();
+          monthsTouched.add(month);
 
           // Add per-night stats to monthly and yearly
-          monthly[m].potentialRevenue += perNightStats.potentialRevenue;
+          monthly[month].potentialRevenue += perNightStats.potentialRevenue;
           yearly.potentialRevenue += perNightStats.potentialRevenue;
 
           if (isSuccess) {
-            monthly[m].revenue += perNightStats.revenue;
-            monthly[m].rentRevenue += perNightStats.rentRevenue;
-            monthly[m].extraBedRevenue += perNightStats.extraBedRevenue;
-            monthly[m].extraTowelRevenue += perNightStats.extraTowelRevenue;
-            monthly[m].discountUsed += perNightStats.discountUsed;
-            monthly[m].nightCount += perNightStats.nightCount;
+            monthly[month].revenue += perNightStats.revenue;
+            monthly[month].rentRevenue += perNightStats.rentRevenue;
+            monthly[month].extraBedRevenue += perNightStats.extraBedRevenue;
+            monthly[month].extraTowelRevenue += perNightStats.extraTowelRevenue;
+            monthly[month].discountUsed += perNightStats.discountUsed;
+            monthly[month].nightCount += perNightStats.nightCount;
 
             yearly.revenue += perNightStats.revenue;
             yearly.rentRevenue += perNightStats.rentRevenue;
