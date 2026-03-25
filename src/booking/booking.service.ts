@@ -459,7 +459,8 @@ export class BookingService {
 
     const bookings = await this.bookingRepository.find({
       where: {
-        checkinDate: Between(startDate, endDate),
+        checkinDate: LessThan(endDate),
+        checkoutDate: MoreThan(startDate),
       },
     });
 
@@ -472,6 +473,7 @@ export class BookingService {
       guestCount: 0,
       childrenCount: 0,
       bookingCount: 0,
+      nightCount: 0,
       potentialRevenue: 0,
     });
 
@@ -489,8 +491,9 @@ export class BookingService {
     ];
 
     bookings.forEach((booking) => {
-      const bookingDate = new Date(booking.checkinDate);
-      const month = bookingDate.getUTCMonth(); // Use UTC month for consistent check-in date grouping
+      const checkin = new Date(booking.checkinDate);
+      const checkout = new Date(booking.checkoutDate);
+      const bookingNightCount = Math.max(1, Math.ceil((checkout.getTime() - checkin.getTime()) / (1000 * 60 * 60 * 24)));
       const isSuccess = successStatuses.includes(booking.status);
 
       const ebRev = (booking.additionGuestNumber || 0) * extraBedPrice;
@@ -499,31 +502,63 @@ export class BookingService {
       const gross = (booking.totalPrice || 0) + discount;
       const rentRev = gross - ebRev - towelRev;
 
-      // Potential revenue includes all bookings
-      monthly[month].potentialRevenue += gross;
-      yearly.potentialRevenue += gross;
+      // Stats per night to be split across months
+      const perNightStats = {
+        revenue: (booking.totalPrice || 0) / bookingNightCount,
+        rentRevenue: rentRev / bookingNightCount,
+        extraBedRevenue: ebRev / bookingNightCount,
+        extraTowelRevenue: towelRev / bookingNightCount,
+        discountUsed: discount / bookingNightCount,
+        potentialRevenue: gross / bookingNightCount,
+        nightCount: 1,
+      };
 
+      const monthsTouched = new Set<number>();
+
+      // Iterate through each night of the booking
+      for (let d = new Date(checkin); d < checkout; d.setDate(d.getDate() + 1)) {
+        // Only count nights within the target year
+        if (d >= startDate && d <= endDate) {
+          const m = d.getUTCMonth();
+          monthsTouched.add(m);
+
+          // Add per-night stats to monthly and yearly
+          monthly[m].potentialRevenue += perNightStats.potentialRevenue;
+          yearly.potentialRevenue += perNightStats.potentialRevenue;
+
+          if (isSuccess) {
+            monthly[m].revenue += perNightStats.revenue;
+            monthly[m].rentRevenue += perNightStats.rentRevenue;
+            monthly[m].extraBedRevenue += perNightStats.extraBedRevenue;
+            monthly[m].extraTowelRevenue += perNightStats.extraTowelRevenue;
+            monthly[m].discountUsed += perNightStats.discountUsed;
+            monthly[m].nightCount += perNightStats.nightCount;
+
+            yearly.revenue += perNightStats.revenue;
+            yearly.rentRevenue += perNightStats.rentRevenue;
+            yearly.extraBedRevenue += perNightStats.extraBedRevenue;
+            yearly.extraTowelRevenue += perNightStats.extraTowelRevenue;
+            yearly.discountUsed += perNightStats.discountUsed;
+            yearly.nightCount += perNightStats.nightCount;
+          }
+        }
+      }
+
+      // Handle guest and booking counts (counted once per month the booking touches)
       if (isSuccess) {
-        const stats = {
-          revenue: booking.totalPrice || 0,
-          rentRevenue: rentRev,
-          extraBedRevenue: ebRev,
-          extraTowelRevenue: towelRev,
-          discountUsed: discount,
-          guestCount: (booking.guestNumber || 0) + (booking.additionGuestNumber || 0),
-          childrenCount: booking.childrenNumber || 0,
-          bookingCount: 1,
-        };
-
-        // Update monthly
-        Object.keys(stats).forEach(key => {
-          monthly[month][key] += stats[key];
+        monthsTouched.forEach(m => {
+          monthly[m].guestCount += (booking.guestNumber || 0) + (booking.additionGuestNumber || 0);
+          monthly[m].childrenCount += booking.childrenNumber || 0;
+          monthly[m].bookingCount += 1;
         });
 
-        // Update yearly
-        Object.keys(stats).forEach(key => {
-          yearly[key] += stats[key];
-        });
+        // For yearly, we only count them once per booking
+        // But only if at least one night was within the year
+        if (monthsTouched.size > 0) {
+          yearly.guestCount += (booking.guestNumber || 0) + (booking.additionGuestNumber || 0);
+          yearly.childrenCount += booking.childrenNumber || 0;
+          yearly.bookingCount += 1;
+        }
       }
     });
 
@@ -538,4 +573,5 @@ export class BookingService {
     };
   }
 }
+
 
