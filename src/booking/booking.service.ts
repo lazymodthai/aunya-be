@@ -459,7 +459,7 @@ export class BookingService {
 
     const bookings = await this.bookingRepository.find({
       where: {
-        createdAt: Between(startDate, endDate),
+        checkinDate: Between(startDate, endDate),
       },
     });
 
@@ -489,8 +489,8 @@ export class BookingService {
     ];
 
     bookings.forEach((booking) => {
-      const bookingDate = new Date(booking.createdAt);
-      const month = bookingDate.getMonth();
+      const bookingDate = new Date(booking.checkinDate);
+      const month = bookingDate.getUTCMonth(); // Use UTC month for consistent check-in date grouping
       const isSuccess = successStatuses.includes(booking.status);
 
       const ebRev = (booking.additionGuestNumber || 0) * extraBedPrice;
