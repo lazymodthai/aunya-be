@@ -9,10 +9,10 @@ export class DiscountCodeEntity {
   @Column({ unique: true, length: 10 })
   code: string;
 
-  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+  @Column({ type: 'decimal', precision: 6, scale: 2, nullable: true }) // 9999.99
   discount?: number | null;
 
-  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true }) // 999.99
   discountPercentage?: number | null;
 
   @Column({ default: 1 })
