@@ -22,6 +22,7 @@ import { UpdateBookingStatusDto } from "./dto/update-booking-status.dto";
 import { BookingStatus } from "@/constants/booking.enum";
 import { AdminOnly, UserOnly } from "@/auth/decorators";
 import { UpdateBookingRemarkDto } from "./dto/update-booking-remark.dto";
+import { UpdateBookingDto } from "./dto/update-booking.dto";
 // import { FilesService } from "@src/files/files.service";
 
 @ApiTags("Booking")
@@ -347,6 +348,42 @@ export class BookingController {
     @Body() updateBookingRemarkDto: UpdateBookingRemarkDto
   ) {
     return this.bookingService.updateBookingRemark(id, updateBookingRemarkDto.remark);
+  }
+
+  @Patch(":id")
+  @AdminOnly()
+  @ApiOperation({
+    summary: "Update booking information by ID",
+    description: "Update various fields of a booking",
+  })
+  @ApiParam({ name: "id", description: "Booking ID (UUID)" })
+  @ApiBody({
+    type: UpdateBookingDto,
+    description: "Booking data to update",
+  })
+  @ApiOkResponse({
+    description: "Booking updated successfully",
+    schema: {
+      type: "object",
+      properties: {
+        success: { type: "boolean", example: true },
+        message: { type: "string", example: "อัปเดตข้อมูลการจองสำเร็จ" },
+        data: { type: "object" },
+      },
+    },
+  })
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  async updateBooking(
+    @Param("id") id: string,
+    @Body() updateBookingDto: UpdateBookingDto
+  ) {
+    const result = await this.bookingService.updateBooking(id, updateBookingDto);
+    return {
+      success: true,
+      message: "อัปเดตข้อมูลการจองสำเร็จ",
+      data: result,
+    };
   }
 
   @Get("/summary")

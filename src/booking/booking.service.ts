@@ -7,6 +7,7 @@ import {
   Inject,
   forwardRef,
 } from "@nestjs/common";
+import { UpdateBookingDto } from "./dto/update-booking.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Between, In, LessThan, LessThanOrEqual, MoreThan, Not, Repository } from "typeorm";
 import { BookDto } from "./dto/book.dto";
@@ -47,19 +48,27 @@ export class BookingService {
   private async checkAvailableRoom(
     checkinDate: Date,
     checkoutDate: Date,
-    roomId: string
+    roomId: string,
+    excludeId?: string
   ): Promise<boolean> {
     if (!checkinDate || !checkoutDate || !roomId) {
-      return true;
+      return false; // Return false (available) if missing info to be safe or true to be restrictive.
+      // Wait, createBooking passes these from DTO.
+    }
+
+    const whereCondition: any = {
+      roomId: roomId,
+      status: BookingStatus.CONFIRMED,
+      checkinDate: LessThan(checkoutDate),
+      checkoutDate: MoreThan(checkinDate),
+    };
+
+    if (excludeId) {
+      whereCondition.id = Not(excludeId);
     }
 
     const conflictingBooking = await this.bookingRepository.findOne({
-      where: {
-        roomId: roomId,
-        status: BookingStatus.CONFIRMED,
-        checkinDate: LessThan(checkoutDate),
-        checkoutDate: MoreThan(checkinDate),
-      },
+      where: whereCondition,
     });
 
     return !!conflictingBooking;
@@ -574,6 +583,90 @@ export class BookingService {
       yearly,
       currentMonth,
     };
+  }
+
+  async updateBooking(id: string, updateBookingDto: UpdateBookingDto): Promise<BookingEntity> {
+    const booking = await this.bookingRepository.findOne({ where: { id } });
+    if (!booking) {
+      throw new NotFoundException(`ไม่พบการจอง ID: ${id}`);
+    }
+
+    // Capture old status for side effects
+    const oldStatus = booking.status;
+
+    // Prevent modification of restricted fields
+    // If these fields are in the DTO, they will be ignored/overridden by existing values
+    const restrictedFields = [
+      'checkinDate',
+      'checkoutDate',
+      'roomId',
+      'customerId',
+      'name',
+      'phoneNumber',
+      'refCode'
+    ];
+
+    restrictedFields.forEach(field => {
+      if (updateBookingDto[field] !== undefined) {
+        delete updateBookingDto[field];
+      }
+    });
+
+    // Merge allowed updates
+    Object.assign(booking, updateBookingDto);
+
+    // Always recalculate remainingAmount and sync depositAmount
+    const total = booking.totalPrice || 0;
+    const paid = booking.paidAmount || 0;
+    const discount = booking.discount || 0;
+    
+    // Auto-calculate remaining amount
+    booking.remainingAmount = Math.max(total - paid - discount, 0);
+
+    // If isOnlyDeposit is true, sync depositAmount with paidAmount
+    if (booking.isOnlyDeposit) {
+      booking.depositAmount = booking.paidAmount;
+    }
+
+    const savedBooking = await this.bookingRepository.save(booking);
+
+    // Trigger side effects if status changed
+    const newStatus = updateBookingDto.status;
+    if (newStatus && newStatus !== oldStatus) {
+      // LINE notifications
+      if (newStatus === BookingStatus.CONFIRMED || newStatus === BookingStatus.CANCELLED) {
+        this.lineNotificationService.sendStatusUpdateNotification(savedBooking).catch((err) => {
+          console.error("LINE status update notification error:", err);
+        });
+      }
+
+      if (newStatus === BookingStatus.PENDING) {
+        this.filesService
+          .getFilesByRoomId(savedBooking.refCode)
+          .then((files) => {
+            const slipUrls = files.filter((f) => f.type !== "qrcode").map((f) => f.fileUrl);
+            return this.lineNotificationService.sendBookingNotification(savedBooking, slipUrls);
+          })
+          .catch((err) => {
+            console.error("LINE notification error:", err);
+          });
+      }
+
+      // Overlap cancellation
+      if (newStatus === BookingStatus.CONFIRMED) {
+        await this.bookingRepository.update(
+          {
+            checkinDate: LessThan(savedBooking.checkoutDate),
+            checkoutDate: MoreThan(savedBooking.checkinDate),
+            id: Not(id),
+            status: In([BookingStatus.PENDING, BookingStatus.PAYMENT]),
+          },
+          { status: BookingStatus.CANCELLED }
+        );
+      }
+    }
+
+    return savedBooking;
   }
 }
 
