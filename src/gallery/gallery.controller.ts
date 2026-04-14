@@ -11,6 +11,7 @@ import {
   HttpException,
   HttpStatus,
   HttpCode,
+  Header,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -79,6 +80,7 @@ export class GalleryController {
           Body: file.buffer,
           ContentType: file.mimetype,
           ACL: 'public-read',
+          CacheControl: 'public, max-age=31536000, immutable',
         }),
       );
     } catch (error) {
@@ -113,6 +115,7 @@ export class GalleryController {
   }
 
   @Get()
+  @Header('Cache-Control', 'no-cache')
   @ApiOperation({
     summary: 'ดึงรูปทั้งหมดสำหรับ SwiperSlide',
     description: 'คืนค่า array ของรูปภาพเรียงตาม sortOrder',
