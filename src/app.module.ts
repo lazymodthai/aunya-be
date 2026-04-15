@@ -15,6 +15,7 @@ import { SettingsModule } from './settings/settings.module';
 import { TasksModule } from './tasks/tasks.module';
 import { GalleryModule } from './gallery/gallery.module';
 import { PropertyInfoModule } from './property-info/property-info.module';
+import { VisitorModule } from './visitor/visitor.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import * as path from 'path';
 
@@ -51,6 +52,7 @@ import * as path from 'path';
     TasksModule,
     GalleryModule,
     PropertyInfoModule,
+    VisitorModule,
     ServeStaticModule.forRoot({
       rootPath: path.join(process.cwd(), 'public'),
       serveRoot: '/public',
