@@ -62,14 +62,7 @@ export class LineNotificationService {
       return;
     }
 
-    const formatDate = (date: Date): string => {
-      const d = new Date(date);
-      return d.toLocaleDateString('th-TH', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-    };
+    const formatDate = (date: Date) => this.formatDate(date);
 
     const fmt = (n?: number) => n?.toLocaleString() ?? '-';
 
@@ -350,6 +343,10 @@ export class LineNotificationService {
 
     let message = `${statusText}\n🔖 Ref: ${booking.refCode}\n👤 คุณ${booking.name}`;
 
+    if (booking.status === BookingStatus.CONFIRMED) {
+      message += `\n📞 โทร: ${booking.phoneNumber}\n📅 เข้าพัก: ${this.formatDate(booking.checkinDate)} - ${this.formatDate(booking.checkoutDate)}`;
+    }
+
     if (booking.remark) {
       message += `\n📝 หมายเหตุ: ${booking.remark}`;
     }
@@ -370,5 +367,14 @@ export class LineNotificationService {
     } catch (error) {
       this.logger.error(`Failed to send status update notification`, error?.response?.data ?? error.message);
     }
+  }
+
+  private formatDate(date: Date): string {
+    const d = new Date(date);
+    return d.toLocaleDateString('th-TH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
   }
 }
