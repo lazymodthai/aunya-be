@@ -10,8 +10,14 @@ export class RoomEntity {
   @Column({ length: 100 })
   name: string;
 
+  @Column({ length: 100, nullable: true })
+  nameEn: string;
+
   @Column({ type: 'text' })
-  description: string
+  description: string;
+
+  @Column({ type: 'text', nullable: true })
+  descriptionEn: string;
 
   @Column({ type: 'enum', enum: RoomStatus, default: RoomStatus.AVAILABLE })
   status: RoomStatus

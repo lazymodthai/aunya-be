@@ -48,6 +48,7 @@ export class PropertyInfoController {
       id: item.id,
       category: item.category,
       label: item.label,
+      labelEn: item.labelEn ?? null,
       iconUrl: item.iconUrl ?? null,
       sortOrder: item.sortOrder,
     }));
@@ -62,6 +63,7 @@ export class PropertyInfoController {
       properties: {
         category: { type: 'string', example: 'facilities' },
         label: { type: 'string', example: 'สระว่ายน้ำ' },
+        labelEn: { type: 'string', example: 'Swimming Pool' },
         sortOrder: { type: 'number', example: 0 },
       },
       required: ['category', 'label'],
@@ -69,12 +71,12 @@ export class PropertyInfoController {
   })
   @HttpCode(HttpStatus.CREATED)
   async create(
-    @Body() body: { category: string; label: string; sortOrder?: number },
+    @Body() body: { category: string; label: string; labelEn?: string; sortOrder?: number },
   ) {
     const item = await this.service.create(body);
     return {
       message: 'เพิ่มรายการสำเร็จ',
-      data: { id: item.id, category: item.category, label: item.label, iconUrl: item.iconUrl ?? null, sortOrder: item.sortOrder },
+      data: { id: item.id, category: item.category, label: item.label, labelEn: item.labelEn ?? null, iconUrl: item.iconUrl ?? null, sortOrder: item.sortOrder },
     };
   }
 

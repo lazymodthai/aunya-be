@@ -17,6 +17,9 @@ export class PropertyInfoEntity {
   @Column({ type: 'varchar', length: 500 })
   label: string;
 
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  labelEn: string;
+
   @Column({ type: 'varchar', length: 1000, nullable: true })
   iconUrl: string;
 

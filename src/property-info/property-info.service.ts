@@ -58,6 +58,7 @@ export class PropertyInfoService implements OnModuleInit {
   async create(data: {
     category: string;
     label: string;
+    labelEn?: string;
     sortOrder?: number;
   }): Promise<PropertyInfoEntity> {
     const entity = this.repo.create(data);
