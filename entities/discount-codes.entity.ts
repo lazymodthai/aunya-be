@@ -19,6 +19,9 @@ export class DiscountCodeEntity {
   count: number;
 
   @Column({ type: 'timestamp with time zone', nullable: true })
+  expiresAt: Date | null;
+
+  @Column({ type: 'timestamp with time zone', nullable: true })
   usedAt: Date | null;
 
   @Column({ type: 'timestamp with time zone', default: () => 'CURRENT_TIMESTAMP' })

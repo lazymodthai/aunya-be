@@ -38,4 +38,12 @@ export class GenerateDiscountCodeDto {
   @IsOptional()
   @IsNumber()
   count?: number;
+
+  @ApiProperty({
+    type: String,
+    required: false,
+    description: "Expiration date (ISO string, e.g. 2026-12-31T23:59:59.999Z)",
+  })
+  @IsOptional()
+  expiresAt?: string | null;
 }

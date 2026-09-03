@@ -160,7 +160,7 @@ export class PricesService {
   }
 
   async generateDiscountCode(generateDiscountCode: GenerateDiscountCodeDto): Promise<{ message: string; discountCode: DiscountCodeEntity }> {
-    const { code, discount, discountPercentage, count } = generateDiscountCode;
+    const { code, discount, discountPercentage, count, expiresAt } = generateDiscountCode;
 
     // ต้องกำหนด discount หรือ discountPercentage อย่างน้อย 1 อย่าง
     if (discount === undefined && discountPercentage === undefined) {
@@ -181,6 +181,7 @@ export class PricesService {
       discount: discount ?? null,
       discountPercentage: discountPercentage ?? null,
       count: count ?? 1,
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
     });
 
     const savedDiscountCode = await this.discountCodeRepository.save(newDiscountCode);
@@ -489,8 +490,11 @@ export class PricesService {
       throw new NotFoundException(`ไม่พบ discount code: ${code}`);
     }
 
-    return discountCode;
+    if (discountCode.expiresAt && new Date() > new Date(discountCode.expiresAt)) {
+      throw new BadRequestException(`Discount code "${code}" หมดอายุแล้ว`);
+    }
 
+    return discountCode;
   }
 
   async useDiscountCode(code: string): Promise<{ message: string; discountCode: number }> {
@@ -500,6 +504,10 @@ export class PricesService {
 
     if (!discountCode) {
       throw new NotFoundException(`ไม่พบ discount code: ${code}`);
+    }
+
+    if (discountCode.expiresAt && new Date() > new Date(discountCode.expiresAt)) {
+      throw new BadRequestException(`Discount code "${code}" หมดอายุแล้ว`);
     }
 
     if (discountCode.count <= 0) {
