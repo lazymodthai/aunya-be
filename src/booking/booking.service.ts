@@ -110,6 +110,28 @@ export class BookingService {
       );
     }
 
+    // Check advance booking months limit
+    try {
+      const advanceMonths = await this.settingsService.getSettingAsNumber(SettingKey.ADVANCE_BOOKING_MONTHS);
+      if (advanceMonths && advanceMonths > 0) {
+        const today = new Date();
+        const maxDate = new Date(today.getFullYear(), today.getMonth() + advanceMonths, 0, 23, 59, 59, 999);
+        const checkin = new Date(bookDto.checkinDate);
+        if (checkin > maxDate) {
+          throw new BadRequestException(`สามารถจองล่วงหน้าได้ไม่เกิน ${advanceMonths} เดือน`);
+        }
+      }
+    } catch (e: any) {
+      if (e instanceof BadRequestException) throw e;
+    }
+
+    const checkin = new Date(bookDto.checkinDate);
+    const checkout = new Date(bookDto.checkoutDate);
+    const bookingNights = Math.max(1, Math.ceil((checkout.getTime() - checkin.getTime()) / (1000 * 60 * 60 * 24)));
+    const depositAmount = bookDto.depositAmount != null
+      ? Number(bookDto.depositAmount)
+      : (bookDto.isOnlyDeposit ? (bookDto.paidAmount ?? 0) : (bookingNights * 2000));
+
     const booking = this.bookingRepository.create({
       refCode,
       checkinDate: bookDto.checkinDate,
@@ -124,7 +146,7 @@ export class BookingService {
       totalPrice: bookDto.totalPrice,
       discount: bookDto.discount,
       isOnlyDeposit: bookDto.isOnlyDeposit ?? false,
-      depositAmount: bookDto.isOnlyDeposit ? (bookDto.paidAmount ?? 0) : 0,
+      depositAmount: depositAmount,
       paidAmount: bookDto.paidAmount,
       remainingAmount: bookDto.remainingAmount,
       roomId: bookDto.roomId,
@@ -506,13 +528,21 @@ export class BookingService {
       const bookingNightCount = Math.max(1, Math.ceil((checkout.getTime() - checkin.getTime()) / (1000 * 60 * 60 * 24)));
       const isSuccess = successStatuses.includes(booking.status);
 
-      const deposit = booking.depositAmount || 0;
-      const actualPrice = (booking.totalPrice || 0) - deposit;
+      let deposit = Number(booking.depositAmount) || 0;
+      if (deposit === 0) {
+        if (booking.isOnlyDeposit && booking.paidAmount) {
+          deposit = Number(booking.paidAmount);
+        } else if ((booking.totalPrice || 0) >= bookingNightCount * 2000) {
+          deposit = bookingNightCount * 2000;
+        }
+      }
+
+      const actualPrice = Math.max(0, (booking.totalPrice || 0) - deposit);
       const ebRev = (booking.additionGuestNumber || 0) * extraBedPrice;
       const towelRev = (booking.additionTowel || 0) * towelPrice;
       const discount = booking.discount || 0;
       const gross = actualPrice + discount;
-      const rentRev = gross - ebRev - towelRev;
+      const rentRev = Math.max(0, gross - ebRev - towelRev);
 
       // Stats per night to be split across months
       const perNightStats = {
@@ -623,8 +653,10 @@ export class BookingService {
     // Auto-calculate remaining amount
     booking.remainingAmount = Math.max(total - paid - discount, 0);
 
-    // If isOnlyDeposit is true, sync depositAmount with paidAmount
-    if (booking.isOnlyDeposit) {
+    // Update depositAmount if provided or sync with paidAmount for isOnlyDeposit
+    if (updateBookingDto.depositAmount !== undefined) {
+      booking.depositAmount = updateBookingDto.depositAmount;
+    } else if (booking.isOnlyDeposit && booking.paidAmount && !booking.depositAmount) {
       booking.depositAmount = booking.paidAmount;
     }
 
