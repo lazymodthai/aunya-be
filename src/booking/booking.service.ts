@@ -254,6 +254,44 @@ export class BookingService {
     }
   }
 
+  async trackBooking(
+    refCode: string,
+    phoneNumber: string
+  ): Promise<BookingEntity | null> {
+    try {
+      const cleanRef = (refCode || "").trim().toUpperCase();
+      const cleanPhone = (phoneNumber || "").trim().replace(/\D/g, "");
+
+      if (!cleanRef || !cleanPhone) {
+        return null;
+      }
+
+      const booking = await this.bookingRepository.findOne({
+        where: {
+          refCode: cleanRef,
+        },
+      });
+
+      if (!booking) {
+        return null;
+      }
+
+      const bookingPhone = (booking.phoneNumber || "").replace(/\D/g, "");
+      const isMatch =
+        bookingPhone === cleanPhone ||
+        (cleanPhone.length >= 8 && bookingPhone.endsWith(cleanPhone)) ||
+        (bookingPhone.length >= 8 && cleanPhone.endsWith(bookingPhone));
+
+      if (!isMatch) {
+        return null;
+      }
+
+      return booking;
+    } catch (error) {
+      throw new InternalServerErrorException("Database query failed");
+    }
+  }
+
   async getBookedRoomsByPhoneNumber(
     phoneNumber: string
   ): Promise<BookingEntity[]> {
