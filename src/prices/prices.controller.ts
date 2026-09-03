@@ -100,6 +100,61 @@ export class PricesController {
     return this.pricesService.resetPrices(resetPriceDto);
   }
 
+  @Get('generated-years/:roomId')
+  @AdminOnly()
+  @ApiOperation({
+    summary: "Get generated years",
+    description: "ดึงรายชื่อปีที่สร้างราคาแล้วสำหรับห้องที่ระบุ",
+  })
+  @ApiParam({ name: 'roomId', description: 'Room ID' })
+  getGeneratedYears(@Param('roomId') roomId: string) {
+    return this.pricesService.getGeneratedYears(roomId);
+  }
+
+  @Get('summaries/:roomId')
+  @AdminOnly()
+  @ApiOperation({
+    summary: "Get year price summaries",
+    description: "ดึงข้อมูลสรุปราคาของแต่ละปี (ราคาวันธรรมดา วันหยุด วันหยุดนักขัตฤกษ์ และจำนวนวันหยุด)",
+  })
+  @ApiParam({ name: 'roomId', description: 'Room ID' })
+  getYearPriceSummaries(@Param('roomId') roomId: string) {
+    return this.pricesService.getYearPriceSummaries(roomId);
+  }
+
+  @Get('bot-holidays/:year')
+  @AdminOnly()
+  @ApiOperation({
+    summary: "Fetch BOT holidays",
+    description: "ดึงข้อมูลวันหยุดนักขัตฤกษ์จาก ธปท. (Bank of Thailand) ตามปีที่ระบุ",
+  })
+  @ApiParam({ name: 'year', description: 'Year (YYYY)' })
+  getBotHolidays(@Param('year') year: string) {
+    return this.pricesService.fetchBotHolidays(Number(year));
+  }
+
+  @Get('holidays/:roomId/:year')
+  @AdminOnly()
+  @ApiOperation({
+    summary: "Get year holidays from DB",
+    description: "ดึงรายการวันหยุดนักขัตฤกษ์ที่บันทึกไว้ในปฏิทินราคาของปีที่ระบุ",
+  })
+  @ApiParam({ name: 'roomId', description: 'Room ID' })
+  @ApiParam({ name: 'year', description: 'Year (YYYY)' })
+  getYearHolidaysFromDB(@Param('roomId') roomId: string, @Param('year') year: string) {
+    return this.pricesService.getYearHolidaysFromDB(roomId, Number(year));
+  }
+
+  @Post('sync-holidays')
+  @AdminOnly()
+  @ApiOperation({
+    summary: "Sync BOT holidays to existing year",
+    description: "ดึงวันหยุดจาก ธปท. และอัปเดตลงในปฏิทินราคาของปีที่สร้างไว้แล้ว",
+  })
+  syncHolidays(@Body() body: { roomId: string; year: number; holidayPrice?: number }) {
+    return this.pricesService.syncHolidays(body.roomId, Number(body.year), body.holidayPrice ? Number(body.holidayPrice) : undefined);
+  }
+
   @Get('discount-codes')
   @AdminOnly()
   @ApiOperation({

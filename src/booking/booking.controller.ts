@@ -143,6 +143,57 @@ export class BookingController {
     }
   }
 
+  @Get("/track")
+  @ApiOperation({
+    summary: "Track booking by refCode and phoneNumber",
+    description: "Public tracking endpoint for guests using booking refCode and phoneNumber",
+  })
+  @ApiQuery({
+    name: "refCode",
+    description: "Booking reference code",
+    type: "string",
+    required: true,
+  })
+  @ApiQuery({
+    name: "phoneNumber",
+    description: "Booking phone number",
+    type: "string",
+    required: true,
+  })
+  @HttpCode(HttpStatus.OK)
+  async trackBooking(
+    @Query("refCode") refCode: string,
+    @Query("phoneNumber") phoneNumber: string
+  ) {
+    if (!refCode || !phoneNumber) {
+      throw new BadRequestException("refCode and phoneNumber are required");
+    }
+
+    try {
+      const booking = await this.bookingService.trackBooking(refCode, phoneNumber);
+
+      if (!booking) {
+        throw new NotFoundException(
+          "ไม่พบข้อมูลการจอง กรุณาตรวจสอบรหัสการจองและหมายเลขโทรศัพท์"
+        );
+      }
+
+      return {
+        success: true,
+        data: booking,
+        message: "Booking retrieved successfully",
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException("Failed to retrieve booking");
+    }
+  }
+
   @Get("/find-by-phone")
   @AdminOnly()
   @ApiOperation({

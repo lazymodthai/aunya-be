@@ -128,6 +128,16 @@ export class BookDto {
   additionTowel?: number;
 
   @ApiProperty({
+    type: Number,
+    required: false,
+    description: 'เงินมัดจำ (บาท)',
+  })
+  @IsNumber()
+  @IsOptional()
+  @Transform(({ value }) => value === 'null' ? null : value)
+  depositAmount?: number;
+
+  @ApiProperty({
     type: String,
     required: false,
     description: 'หมายเหตุ',

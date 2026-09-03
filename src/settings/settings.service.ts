@@ -14,6 +14,7 @@ export enum SettingKey {
   TOWEL_PRICE = 'towelPrice',
   AUTO_SLIP_VERIFICATION = 'autoSlipVerification',
   LINE_NOTIFICATION = 'lineNotification',
+  ADVANCE_BOOKING_MONTHS = 'advanceBookingMonths',
 }
 
 // Default settings values
@@ -25,6 +26,7 @@ const DEFAULT_SETTINGS: { key: string; value: string; description: string }[] = 
   { key: SettingKey.TOWEL_PRICE, value: '50', description: 'ราคาผ้าขนหนู (บาท)' },
   { key: SettingKey.AUTO_SLIP_VERIFICATION, value: 'true', description: 'เปิด/ปิด ระบบตรวจสลิปอัตโนมัติ' },
   { key: SettingKey.LINE_NOTIFICATION, value: 'true', description: 'เปิด/ปิด การส่ง LINE notification' },
+  { key: SettingKey.ADVANCE_BOOKING_MONTHS, value: '6', description: 'จำนวนเดือนที่เปิดให้จองล่วงหน้า (เดือน)' },
 ];
 
 @Injectable()

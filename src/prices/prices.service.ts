@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, In, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
@@ -37,7 +37,7 @@ export class PricesService {
     private readonly configService: ConfigService,
   ) { }
 
-  async generatePrices(generatePriceDto: GeneratePriceDto): Promise<{ message: string; count: number }> {
+  async generatePrices(generatePriceDto: GeneratePriceDto): Promise<{ message: string; count: number; holidayCount: number; botSuccess: boolean }> {
     const { year, roomId, weekdayPrice, weekendPrice, holidayPrice } = generatePriceDto;
 
     const startDate = new Date(year, 0, 1);
@@ -53,10 +53,18 @@ export class PricesService {
       throw new ConflictException(`ราคาสำหรับห้อง ID: ${roomId} ปี ${year} ได้ถูกสร้างไว้แล้ว`);
     }
 
-    const holidays = await this._fetchHolidays(year);
-    const holidayMap = new Map<string, string>(
-      holidays.map(h => [h.Date, h.HolidayDescriptionThai])
-    );
+    // Try fetching holidays from BOT API gracefully
+    let holidayMap = new Map<string, string>();
+    let botSuccess = false;
+    try {
+      const botRes = await this.fetchBotHolidays(year);
+      if (botRes.success && botRes.holidays.length > 0) {
+        holidayMap = new Map<string, string>(botRes.holidays.map(h => [h.date, h.description]));
+        botSuccess = true;
+      }
+    } catch (e: any) {
+      this.logger.warn(`Could not fetch BOT holidays when generating prices for year ${year}: ${e.message}`);
+    }
 
     const pricesToCreate: PriceCalendarEntity[] = [];
 
@@ -94,37 +102,65 @@ export class PricesService {
 
     await this.priceCalendarRepository.save(pricesToCreate, { chunk: 100 });
 
+    const holidayCount = pricesToCreate.filter(p => p.dayType === DayType.HOLIDAY).length;
+    const message = botSuccess
+      ? `สร้างข้อมูลราคาปี ${year} สำเร็จ (รวมวันหยุดจาก ธปท. ${holidayCount} วัน)`
+      : `สร้างข้อมูลราคาปี ${year} สำเร็จ (ไม่สามารถดึงวันหยุดจาก ธปท. ได้ สามารถกดซิงค์วันหยุดได้ภายหลัง)`;
+
     return {
-      message: `สร้างข้อมูลราคาปี ${year} สำเร็จ`,
+      message,
       count: pricesToCreate.length,
+      holidayCount,
+      botSuccess,
     };
   }
 
-  private async _fetchHolidays(year: number): Promise<{ Date: string; HolidayDescriptionThai: string }[]> {
+  async fetchBotHolidays(year: number): Promise<{ success: boolean; message: string; holidays: { date: string; description: string }[] }> {
     const token = this.configService.get<string>('BOT_API_TOKEN');
     if (!token) {
-      throw new InternalServerErrorException('BOT API Token is not configured.');
+      return {
+        success: false,
+        message: 'BOT API Token ยังไม่ได้ตั้งค่าในระบบ (.env)',
+        holidays: [],
+      };
     }
 
     try {
       const BOT_API_URL = this.configService.get<string>('BOT_API_URL');
       if (!BOT_API_URL) {
-        throw new InternalServerErrorException('BOT API URL is not configured.');
+        return {
+          success: false,
+          message: 'BOT API URL ยังไม่ได้ตั้งค่าในระบบ (.env)',
+          holidays: [],
+        };
       }
       const response = await firstValueFrom(
         this.httpService.get(`${BOT_API_URL}/?year=${year}`, {
           headers: { 'Accept': 'application/json', 'Authorization': `${token}` },
         }),
       );
-      return response.data.result.data;
-    } catch (error) {
-      this.logger.error('Failed to fetch holidays from BOT API', error.stack);
-      throw new InternalServerErrorException('ไม่สามารถดึงข้อมูลวันหยุดได้');
+      const data = response.data?.result?.data || [];
+      const holidays = data.map((h: any) => ({
+        date: h.Date,
+        description: h.HolidayDescriptionThai || h.HolidayDescription || 'วันหยุดนักขัตฤกษ์',
+      }));
+      return {
+        success: true,
+        message: `ดึงข้อมูลวันหยุดปี ${year} จาก ธปท. สำเร็จ (${holidays.length} วัน)`,
+        holidays,
+      };
+    } catch (error: any) {
+      this.logger.warn(`Failed to fetch holidays from BOT API for year ${year}: ${error.message}`);
+      return {
+        success: false,
+        message: `ไม่สามารถดึงข้อมูลวันหยุดจาก ธปท. ได้ (${error.message || 'Error'})`,
+        holidays: [],
+      };
     }
   }
 
   async generateDiscountCode(generateDiscountCode: GenerateDiscountCodeDto): Promise<{ message: string; discountCode: DiscountCodeEntity }> {
-    const { code, discount, discountPercentage, count } = generateDiscountCode;
+    const { code, discount, discountPercentage, count, expiresAt } = generateDiscountCode;
 
     // ต้องกำหนด discount หรือ discountPercentage อย่างน้อย 1 อย่าง
     if (discount === undefined && discountPercentage === undefined) {
@@ -145,6 +181,7 @@ export class PricesService {
       discount: discount ?? null,
       discountPercentage: discountPercentage ?? null,
       count: count ?? 1,
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
     });
 
     const savedDiscountCode = await this.discountCodeRepository.save(newDiscountCode);
@@ -273,6 +310,166 @@ export class PricesService {
     };
   }
 
+  async getGeneratedYears(roomId: string): Promise<{ message: string; years: number[] }> {
+    const rawYears = await this.priceCalendarRepository
+      .createQueryBuilder('pc')
+      .select('DISTINCT EXTRACT(YEAR FROM pc.date)', 'year')
+      .where('pc.roomId = :roomId', { roomId })
+      .orderBy('year', 'ASC')
+      .getRawMany();
+
+    const years = rawYears
+      .map(r => Number(r.year))
+      .filter(y => !isNaN(y) && y > 0);
+
+    return {
+      message: 'ดึงข้อมูลปีที่สร้างราคาแล้วสำเร็จ',
+      years,
+    };
+  }
+
+  async getYearPriceSummaries(roomId: string): Promise<{
+    message: string;
+    summaries: {
+      year: number;
+      minWeekdayPrice: number;
+      maxWeekdayPrice: number;
+      avgWeekdayPrice: number;
+      minWeekendPrice: number;
+      maxWeekendPrice: number;
+      avgWeekendPrice: number;
+      minHolidayPrice: number;
+      maxHolidayPrice: number;
+      avgHolidayPrice: number;
+      holidayCount: number;
+      totalDays: number;
+    }[];
+  }> {
+    const raw = await this.priceCalendarRepository
+      .createQueryBuilder('pc')
+      .select('EXTRACT(YEAR FROM pc.date)', 'year')
+      .addSelect('MIN(CASE WHEN pc.dayType = :weekday THEN pc.price END)', 'minWeekdayPrice')
+      .addSelect('MAX(CASE WHEN pc.dayType = :weekday THEN pc.price END)', 'maxWeekdayPrice')
+      .addSelect('ROUND(AVG(CASE WHEN pc.dayType = :weekday THEN pc.price END))', 'avgWeekdayPrice')
+      .addSelect('MIN(CASE WHEN pc.dayType = :weekend THEN pc.price END)', 'minWeekendPrice')
+      .addSelect('MAX(CASE WHEN pc.dayType = :weekend THEN pc.price END)', 'maxWeekendPrice')
+      .addSelect('ROUND(AVG(CASE WHEN pc.dayType = :weekend THEN pc.price END))', 'avgWeekendPrice')
+      .addSelect('MIN(CASE WHEN pc.dayType = :holiday THEN pc.price END)', 'minHolidayPrice')
+      .addSelect('MAX(CASE WHEN pc.dayType = :holiday THEN pc.price END)', 'maxHolidayPrice')
+      .addSelect('ROUND(AVG(CASE WHEN pc.dayType = :holiday THEN pc.price END))', 'avgHolidayPrice')
+      .addSelect('COUNT(CASE WHEN pc.dayType = :holiday THEN 1 END)', 'holidayCount')
+      .addSelect('COUNT(*)', 'totalDays')
+      .where('pc.roomId = :roomId', { roomId })
+      .setParameters({
+        weekday: DayType.WEEKDAY,
+        weekend: DayType.WEEKEND,
+        holiday: DayType.HOLIDAY,
+      })
+      .groupBy('EXTRACT(YEAR FROM pc.date)')
+      .orderBy('year', 'ASC')
+      .getRawMany();
+
+    const summaries = raw
+      .map(r => ({
+        year: Number(r.year),
+        minWeekdayPrice: Number(r.minweekdayprice ?? r.minWeekdayPrice ?? 0),
+        maxWeekdayPrice: Number(r.maxweekdayprice ?? r.maxWeekdayPrice ?? 0),
+        avgWeekdayPrice: Number(r.avgweekdayprice ?? r.avgWeekdayPrice ?? 0),
+        minWeekendPrice: Number(r.minweekendprice ?? r.minWeekendPrice ?? 0),
+        maxWeekendPrice: Number(r.maxweekendprice ?? r.maxWeekendPrice ?? 0),
+        avgWeekendPrice: Number(r.avgweekendprice ?? r.avgWeekendPrice ?? 0),
+        minHolidayPrice: Number(r.minholidayprice ?? r.minHolidayPrice ?? 0),
+        maxHolidayPrice: Number(r.maxholidayprice ?? r.maxHolidayPrice ?? 0),
+        avgHolidayPrice: Number(r.avgholidayprice ?? r.avgHolidayPrice ?? 0),
+        holidayCount: Number(r.holidaycount ?? r.holidayCount ?? 0),
+        totalDays: Number(r.totaldays ?? r.totalDays ?? 0),
+      }))
+      .filter(s => !isNaN(s.year) && s.year > 0);
+
+    return {
+      message: 'ดึงข้อมูลสรุปราคาแต่ละปีสำเร็จ',
+      summaries,
+    };
+  }
+
+  async getYearHolidaysFromDB(roomId: string, year: number): Promise<{
+    message: string;
+    holidays: { date: string; price: number; description: string }[];
+  }> {
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31);
+    const records = await this.priceCalendarRepository.find({
+      where: {
+        roomId,
+        date: Between(startDate, endDate),
+        dayType: DayType.HOLIDAY,
+      },
+      order: { date: 'ASC' },
+    });
+
+    const holidays = records.map(r => ({
+      date: this.toDateString(new Date(r.date)),
+      price: Number(r.price),
+      description: r.description || 'วันหยุดนักขัตฤกษ์',
+    }));
+
+    return {
+      message: `ดึงรายการวันหยุดปี ${year} สำเร็จ (${holidays.length} วัน)`,
+      holidays,
+    };
+  }
+
+  async syncHolidays(roomId: string, year: number, holidayPrice?: number): Promise<{
+    success: boolean;
+    message: string;
+    updatedCount: number;
+  }> {
+    const res = await this.fetchBotHolidays(year);
+    if (!res.success || res.holidays.length === 0) {
+      return {
+        success: false,
+        message: res.message || 'ไม่พบข้อมูลวันหยุดจาก ธปท.',
+        updatedCount: 0,
+      };
+    }
+
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31);
+    const existingPrices = await this.priceCalendarRepository.find({
+      where: {
+        roomId,
+        date: Between(startDate, endDate),
+      },
+    });
+
+    if (existingPrices.length === 0) {
+      throw new NotFoundException(`ไม่พบข้อมูลราคาของปี ${year} ในระบบ กรุณาสร้างราคาทั้งปีก่อน`);
+    }
+
+    const holidayMap = new Map(res.holidays.map(h => [h.date, h.description]));
+    let updatedCount = 0;
+
+    for (const p of existingPrices) {
+      const dateStr = this.toDateString(new Date(p.date));
+      if (holidayMap.has(dateStr)) {
+        p.dayType = DayType.HOLIDAY;
+        p.description = holidayMap.get(dateStr) || 'วันหยุดนักขัตฤกษ์';
+        if (holidayPrice != null && holidayPrice > 0) {
+          p.price = holidayPrice;
+        }
+        updatedCount++;
+      }
+    }
+
+    await this.priceCalendarRepository.save(existingPrices, { chunk: 100 });
+
+    return {
+      success: true,
+      message: `ซิงค์วันหยุด ธปท. ปี ${year} สำเร็จ (อัปเดต ${updatedCount} วัน)`,
+      updatedCount,
+    };
+  }
+
   async getAllDiscountCodes(): Promise<{ message: string; discountCodes: DiscountCodeEntity[] }> {
     const discountCodes = await this.discountCodeRepository.find({
       order: { createdAt: 'DESC' }
@@ -293,8 +490,11 @@ export class PricesService {
       throw new NotFoundException(`ไม่พบ discount code: ${code}`);
     }
 
-    return discountCode;
+    if (discountCode.expiresAt && new Date() > new Date(discountCode.expiresAt)) {
+      throw new BadRequestException(`Discount code "${code}" หมดอายุแล้ว`);
+    }
 
+    return discountCode;
   }
 
   async useDiscountCode(code: string): Promise<{ message: string; discountCode: number }> {
@@ -304,6 +504,10 @@ export class PricesService {
 
     if (!discountCode) {
       throw new NotFoundException(`ไม่พบ discount code: ${code}`);
+    }
+
+    if (discountCode.expiresAt && new Date() > new Date(discountCode.expiresAt)) {
+      throw new BadRequestException(`Discount code "${code}" หมดอายุแล้ว`);
     }
 
     if (discountCode.count <= 0) {
