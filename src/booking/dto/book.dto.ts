@@ -1,6 +1,7 @@
-import { IsBoolean, IsDateString, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional, IsString } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
+import { BookingStatus } from "@/constants/booking.enum";
 
 export class BookDto {
   @ApiProperty({
@@ -145,4 +146,13 @@ export class BookDto {
   @IsString()
   @IsOptional()
   remark?: string;
+
+  @ApiProperty({
+    enum: BookingStatus,
+    required: false,
+    description: 'สถานะการจอง (สำหรับแอดมินหรือบันทึกย้อนหลัง)',
+  })
+  @IsEnum(BookingStatus)
+  @IsOptional()
+  status?: BookingStatus;
 }

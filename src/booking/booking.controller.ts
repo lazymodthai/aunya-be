@@ -36,16 +36,35 @@ export class BookingController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: "Book a room",
-    description: "Book a room",
+    description: "Book a room for regular users",
   })
   @ApiBody({
     type: BookDto,
     description: "Booking data",
   })
   async book(@Body() bookDto: BookDto) {
-    const result = await this.bookingService.createBooking(bookDto);
+    const result = await this.bookingService.createBooking(bookDto, false);
     return {
       message: "Booking successful",
+      ...result,
+    };
+  }
+
+  @Post("/admin/book")
+  @AdminOnly()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Admin book or record past booking",
+    description: "Create a booking with admin privileges (supports past dates and custom status)",
+  })
+  @ApiBody({
+    type: BookDto,
+    description: "Booking data",
+  })
+  async adminBook(@Body() bookDto: BookDto) {
+    const result = await this.bookingService.createBooking(bookDto, true);
+    return {
+      message: "Admin booking successful",
       ...result,
     };
   }
