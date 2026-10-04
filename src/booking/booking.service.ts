@@ -52,13 +52,16 @@ export class BookingService {
     excludeId?: string
   ): Promise<boolean> {
     if (!checkinDate || !checkoutDate || !roomId) {
-      return false; // Return false (available) if missing info to be safe or true to be restrictive.
-      // Wait, createBooking passes these from DTO.
+      return false;
     }
 
     const whereCondition: any = {
       roomId: roomId,
-      status: BookingStatus.CONFIRMED,
+      status: In([
+        BookingStatus.CONFIRMED,
+        BookingStatus.CHECKED_IN,
+        BookingStatus.CHECKED_OUT,
+      ]),
       checkinDate: LessThan(checkoutDate),
       checkoutDate: MoreThan(checkinDate),
     };
@@ -95,7 +98,7 @@ export class BookingService {
     }));
   }
 
-  async createBooking(bookDto: BookDto) {
+  async createBooking(bookDto: BookDto, isAdmin: boolean = false) {
     const refCode = this.generateRefCode();
 
     const isUnavailable = await this.checkAvailableRoom(
@@ -106,31 +109,55 @@ export class BookingService {
 
     if (isUnavailable) {
       throw new ConflictException(
-        `This room is unavailable for the selected dates.`
+        `ห้องพักนี้ไม่ว่างในวันที่เลือก (มีการจองแล้ว)`
       );
-    }
-
-    // Check advance booking months limit
-    try {
-      const advanceMonths = await this.settingsService.getSettingAsNumber(SettingKey.ADVANCE_BOOKING_MONTHS);
-      if (advanceMonths && advanceMonths > 0) {
-        const today = new Date();
-        const maxDate = new Date(today.getFullYear(), today.getMonth() + advanceMonths, 0, 23, 59, 59, 999);
-        const checkin = new Date(bookDto.checkinDate);
-        if (checkin > maxDate) {
-          throw new BadRequestException(`สามารถจองล่วงหน้าได้ไม่เกิน ${advanceMonths} เดือน`);
-        }
-      }
-    } catch (e: any) {
-      if (e instanceof BadRequestException) throw e;
     }
 
     const checkin = new Date(bookDto.checkinDate);
     const checkout = new Date(bookDto.checkoutDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Regular users cannot book past dates
+    if (!isAdmin && checkin < today) {
+      throw new BadRequestException('ไม่อนุญาตให้จองย้อนหลัง (สำหรับแอดมินเท่านั้น)');
+    }
+
+    // Check advance booking months limit (for regular users)
+    if (!isAdmin) {
+      try {
+        const advanceMonths = await this.settingsService.getSettingAsNumber(SettingKey.ADVANCE_BOOKING_MONTHS);
+        if (advanceMonths && advanceMonths > 0) {
+          const maxDate = new Date(today.getFullYear(), today.getMonth() + advanceMonths, 0, 23, 59, 59, 999);
+          if (checkin > maxDate) {
+            throw new BadRequestException(`สามารถจองล่วงหน้าได้ไม่เกิน ${advanceMonths} เดือน`);
+          }
+        }
+      } catch (e: any) {
+        if (e instanceof BadRequestException) throw e;
+      }
+    }
+
     const bookingNights = Math.max(1, Math.ceil((checkout.getTime() - checkin.getTime()) / (1000 * 60 * 60 * 24)));
     const depositAmount = bookDto.depositAmount != null
       ? Number(bookDto.depositAmount)
       : (bookDto.isOnlyDeposit ? (bookDto.paidAmount ?? 0) : (bookingNights * 2000));
+
+    // Status: only admin can specify custom status, regular users always start with PAYMENT
+    const targetStatus = isAdmin && bookDto.status ? bookDto.status : BookingStatus.PAYMENT;
+
+    // Calculate paidAmount and remainingAmount based on status
+    let paidAmount = bookDto.paidAmount;
+    let remainingAmount = bookDto.remainingAmount;
+
+    if (isAdmin && (targetStatus === BookingStatus.CONFIRMED || targetStatus === BookingStatus.CHECKED_OUT)) {
+      if (paidAmount == null) {
+        paidAmount = bookDto.isOnlyDeposit ? depositAmount : bookDto.totalPrice;
+      }
+      if (remainingAmount == null) {
+        remainingAmount = bookDto.isOnlyDeposit ? Math.max(0, bookDto.totalPrice - depositAmount) : 0;
+      }
+    }
 
     const booking = this.bookingRepository.create({
       refCode,
@@ -138,23 +165,37 @@ export class BookingService {
       checkoutDate: bookDto.checkoutDate,
       guestNumber: bookDto.guestNumber,
       childrenNumber: bookDto.childrenNumber ?? 0,
-      additionGuestNumber: bookDto.additionGuestNumber,
+      additionGuestNumber: bookDto.additionGuestNumber ?? 0,
       additionTowel: bookDto.additionTowel ?? 0,
       name: bookDto.name,
       phoneNumber: bookDto.phoneNumber,
-      status: BookingStatus.PAYMENT,
+      status: targetStatus,
       totalPrice: bookDto.totalPrice,
-      discount: bookDto.discount,
+      discount: bookDto.discount ?? 0,
       isOnlyDeposit: bookDto.isOnlyDeposit ?? false,
       depositAmount: depositAmount,
-      paidAmount: bookDto.paidAmount,
-      remainingAmount: bookDto.remainingAmount,
+      paidAmount: paidAmount,
+      remainingAmount: remainingAmount,
       roomId: bookDto.roomId,
       customerId: bookDto.customerId,
       remark: bookDto.remark,
     });
 
     const savedBooking = await this.bookingRepository.save(booking);
+
+    // If status is Confirmed or CheckedOut, cancel other overlapping pending/payment bookings
+    if (targetStatus === BookingStatus.CONFIRMED || targetStatus === BookingStatus.CHECKED_OUT) {
+      await this.bookingRepository.update(
+        {
+          checkinDate: LessThan(savedBooking.checkoutDate),
+          checkoutDate: MoreThan(savedBooking.checkinDate),
+          id: Not(savedBooking.id),
+          status: In([BookingStatus.PENDING, BookingStatus.PAYMENT]),
+        },
+        { status: BookingStatus.CANCELLED }
+      );
+    }
+
     const prices = await this.getPrices(
       bookDto.checkinDate,
       bookDto.checkoutDate,
@@ -165,6 +206,7 @@ export class BookingService {
       refCode: savedBooking.refCode,
       id: savedBooking.id,
       prices: prices,
+      booking: savedBooking,
     };
   }
 

@@ -553,10 +553,20 @@ export class PricesService {
       order: { date: 'ASC' },
     });
 
-    const priceDetails = prices.map(price => ({
-      date: this.toDateString(new Date(price.date)),
-      price: Number(price.price),
-    }));
+    const priceMap = new Map<string, number>();
+    for (const p of prices) {
+      priceMap.set(this.toDateString(new Date(p.date)), Number(p.price));
+    }
+
+    const priceDetails: { date: string; price: number }[] = [];
+    for (let d = new Date(checkin); d <= lastNight; d.setDate(d.getDate() + 1)) {
+      const dateStr = this.toDateString(d);
+      const price = priceMap.has(dateStr) ? priceMap.get(dateStr)! : 2000;
+      priceDetails.push({
+        date: dateStr,
+        price: price,
+      });
+    }
 
     const totalPrice = priceDetails.reduce((sum, item) => sum + item.price, 0);
     const nights = priceDetails.length;
